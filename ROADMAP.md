@@ -14,8 +14,12 @@ and where it heads. It doubles as the honest scope statement for the repo.
 | OCR + book lookup (`understanding/ocr_titles.py`) | implemented; not yet run on real crops |
 | Splat — Postshot lane | doc'd; ready to run on your capture |
 | Splat — open lane (VGGT→gsplat) | scripted + documented; CUDA build, run after the demo is safe |
-| Web viewer (`docs/`) | authored; validated against a sample splat |
-| Measurement overlay | in the viewer |
+| Queryable web viewer (`docs/viewer`) | **done, verified headless** — orbit + measure + search→3D highlight |
+| Semantic fusion (`understanding/fusion`) | **done, tested** — lifts 2D detections into a 3D scene graph (scene.json) |
+| Query CLI (`understanding/query.py`) | **done, tested** — terminal + `--json` for an agent |
+| Orchestrator + eval gate (`pipeline/run.py`, `gate.py`) | **done, tested** — config-driven, threshold-gated |
+| Test suite + CI (`tests/`, `.github`) | **done, green** — 20 tests, ruff |
+| Classifier → ONNX (`export_onnx.py`) | **done** — torch↔onnx parity verified (browser-ready) |
 | Docs (README / ARCHITECTURE / ROADMAP / CAPTURE_GUIDE) | authored |
 
 _(Kept current as milestones land.)_
