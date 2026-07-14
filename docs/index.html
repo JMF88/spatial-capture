@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>spatial-capture</title>
+<style>
+  :root { color-scheme: dark light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.6 system-ui, -apple-system, sans-serif;
+    background: #0b0d10; color: #e6edf3; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 56px 22px 80px; }
+  h1 { font-size: 2.1rem; margin: 0 0 .2em; letter-spacing: -.01em; }
+  .tag { color: #9fb0c0; font-size: 1.15rem; margin: 0 0 1.6em; }
+  a { color: #6cb6ff; }
+  .cta { display: inline-block; background: #1f6feb; color: #fff; text-decoration: none;
+    padding: 11px 20px; border-radius: 9px; font-weight: 600; margin: 6px 0 4px; }
+  .cta.secondary { background: #161b22; border: 1px solid #30363d; color: #e6edf3; }
+  .note { color: #7d8a97; font-size: .9rem; margin-top: 8px; }
+  h2 { font-size: 1.15rem; margin: 2.2em 0 .6em; }
+  .branches { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 1em 0; }
+  .card { background: #11151a; border: 1px solid #222b35; border-radius: 12px; padding: 16px 18px; }
+  .card h3 { margin: 0 0 .3em; font-size: 1rem; }
+  .card p { margin: 0; color: #aab7c4; font-size: .92rem; }
+  ol.stages { color: #cdd9e5; padding-left: 1.2em; }
+  ol.stages code { background: #1b222b; padding: 1px 6px; border-radius: 5px; font-size: .85em; }
+  footer { margin-top: 3em; color: #6b7783; font-size: .85rem; border-top: 1px solid #222b35; padding-top: 1.4em; }
+  @media (max-width: 560px) { .branches { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>spatial-capture</h1>
+  <p class="tag">Capture a real enclosed space with a phone. Reconstruct it as a
+    browser-viewable 3D Gaussian splat, and understand what's in it.</p>
+
+  <a class="cta" href="./viewer/">Open the live viewer &rarr;</a>
+  <div class="note">The viewer goes live once the first capture is trained. It renders an
+    interactive splat you can orbit on any laptop or phone.</div>
+
+  <h2>Two branches, two kinds of AI</h2>
+  <p>One phone capture feeds two branches. The interesting part is that they are two
+    <em>different</em> kinds of machine learning:</p>
+  <div class="branches">
+    <div class="card">
+      <h3>Reconstruction &mdash; optimization</h3>
+      <p>Differentiable rendering fits millions of 3D Gaussians to the photos by gradient
+        descent. No labels, no training set &mdash; the scene <em>is</em> the model.</p>
+    </div>
+    <div class="card">
+      <h3>Understanding &mdash; supervision</h3>
+      <p>Open-vocabulary detection, a transfer-learned classifier, and OCR find and read
+        what's in the scene. Models trained on labeled examples.</p>
+    </div>
+  </div>
+
+  <h2>The pipeline</h2>
+  <ol class="stages">
+    <li>Phone video &rarr; sharp frames (<code>ffmpeg</code>)</li>
+    <li>Camera poses &mdash; structure-from-motion (Postshot, or a VGGT transformer)</li>
+    <li>Gaussian-splat training (Postshot, or gsplat)</li>
+    <li>Compress &amp; host &mdash; a static URL on GitHub Pages</li>
+    <li>Understanding &mdash; detect &rarr; classify &rarr; read</li>
+  </ol>
+
+  <h2>Why enclosures</h2>
+  <p>Most real reality-capture jobs &mdash; training sims, workspace walkthroughs, digital
+    twins &mdash; are <em>enclosures</em>: you stand inside and the camera looks out. That
+    inside-out case is harder than orbiting an object, which is exactly why it's the valuable
+    one. This project proves it end to end.</p>
+
+  <footer>
+    Source, architecture rationale, and reproduce steps in the
+    <a href="https://github.com/jmf88/spatial-capture">GitHub repo</a>.<br>
+    Personal project. Not affiliated with, and containing no code or data from, any employer
+    or client.
+  </footer>
+</div>
+</body>
+</html>

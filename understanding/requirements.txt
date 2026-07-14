@@ -1,0 +1,26 @@
+# Understanding branch — detection, classification, OCR.
+#
+# GPU (JM's real runs): install CUDA torch FIRST, else Windows pulls CPU-only
+# torch and the RTX 4070 sits idle even with device=0:
+#     pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+# CPU (enough to train the small classifier / smoke-test everything):
+#     pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+#
+# Then:  pip install -r understanding/requirements.txt
+
+# --- classifier (MIT, this repo) ---
+timm                 # pretrained backbones for transfer learning
+numpy
+pillow
+matplotlib           # confusion-matrix / curve plots
+scikit-learn         # metrics: confusion matrix, classification report
+
+# --- open-vocab detection (detect.py is AGPL-3.0 — see its header) ---
+ultralytics          # YOLOE / YOLO-World. AGPL-3.0. Permissive swap documented in ARCHITECTURE.md
+opencv-python        # mask PNG I/O for detect.py
+# get_text_pe() also needs CLIP; install once explicitly (needs git on PATH):
+#     pip install git+https://github.com/ultralytics/CLIP.git
+
+# --- OCR + book lookup (feature B) ---
+easyocr              # spine-title OCR (handles rotation); pulls its own torch
+requests             # Open Library metadata lookup

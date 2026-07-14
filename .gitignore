@@ -1,0 +1,34 @@
+# Python envs / caches
+.venv/
+.venv-*/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Local capture data & pipeline outputs (large — not for the repo)
+data/
+**/frames/
+**/*_raw/
+*.mp4
+*.mov
+*.MOV
+*.insv
+
+# Training runs / checkpoints (commit only a final, small classifier explicitly)
+runs/
+*.ckpt
+
+# Runtime detection / inference outputs
+out/
+
+# Downloaded model weights (re-download on demand; never commit)
+*.pt
+*.pth
+mobileclip*.ts
+
+# Large raw splats live in data/ (ignored above). The demo splat under
+# docs/assets/ IS tracked, so do NOT ignore *.ply / *.splat globally.
+
+# OS
+.DS_Store
+Thumbs.db

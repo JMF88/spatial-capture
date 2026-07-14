@@ -1,0 +1,11 @@
+# Stage 1 (frame extraction) — light, CPU-only.
+numpy
+pillow
+
+# Stages 2-3 (camera poses + splat training) are largely EXTERNAL tools, not
+# pip deps, so they are intentionally not pinned here:
+#   - DEFAULT lane: Jawset Postshot (Windows GUI, built-in SfM + 3DGS training).
+#     No Python/CUDA-build setup. See pipeline/README.md.
+#   - OPEN lane (reproducible): VGGT (poses) + gsplat (training, Apache-2.0).
+#     Heavy CUDA install — see pipeline/02_poses_vggt.py and pipeline/README.md.
+#     Kept off this environment so frame extraction stays trivial to run.
