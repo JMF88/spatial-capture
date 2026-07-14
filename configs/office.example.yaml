@@ -1,0 +1,21 @@
+# Example orchestrator config. Copy to configs/<scene>.yaml and edit, then:
+#   python pipeline/run.py --config configs/office.yaml           # run all stages
+#   python pipeline/run.py --config configs/office.yaml --dry-run # print the plan
+#   python pipeline/run.py --config configs/office.yaml --from detect
+scene: office
+video: data/office/office.mp4        # your capture video
+workdir: data/office                 # frames/ and detect/ are written here
+frames:
+  fps: 3
+  long_edge: 1600
+  keep: 0.85
+sparse: data/office/sparse/0         # COLMAP poses (Postshot export, or VGGT/COLMAP)
+splat: data/office/office.ply        # trained splat (Postshot, or gsplat)
+detect:
+  classes: ["book", "chair", "potted plant", "laptop", "lamp"]
+  weights: yoloe-11l-seg.pt
+fusion:
+  dist_thresh: 0.5
+  min_points: 4
+  min_frames: 2
+publish: docs/viewer/assets          # scene.json (+ scene.ply) land here for the viewer
