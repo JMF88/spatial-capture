@@ -93,13 +93,14 @@ let sceneRadius = 1;
 const splat = new SplatMesh({
   url: SRC,
   onLoad: () => {
-    statusEl.hidden = true;
+    statusEl.style.display = "none";   // .hidden is overridden by #status{display:grid}
     frameToObject(splat);
     console.info("[spatial-capture] splat loaded:", SRC);
   }
 });
 scene.add(splat);
 splat.initialized?.catch(err => {
+  statusEl.style.display = "grid";
   statusEl.className = "err";
   statusEl.textContent = "Failed to load " + SRC + "\n" + err;
   console.error("[spatial-capture] load failed:", err);
