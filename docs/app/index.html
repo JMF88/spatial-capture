@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<title>Trove — spatial capture</title>
+<meta name="theme-color" content="#0a0c10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<canvas id="ambient" aria-hidden="true"></canvas>
+
+<div class="shell">
+  <header>
+    <span class="brand">
+      <span class="dot"></span>
+      <span class="name">Trove</span>
+    </span>
+    <span class="sub">field catalog</span>
+  </header>
+
+  <main>
+    <!-- COLLECTION -->
+    <section id="view-collection" class="view active">
+      <div class="view-head">
+        <div>
+          <div class="eyebrow">captured spaces</div>
+          <h1>Collection</h1>
+        </div>
+        <span class="count" id="scene-count"></span>
+      </div>
+      <div class="grid" id="scene-grid"></div>
+    </section>
+
+    <!-- CAPTURE -->
+    <section id="view-capture" class="view">
+      <div class="view-head">
+        <div>
+          <div class="eyebrow">guided capture</div>
+          <h1>Capture</h1>
+        </div>
+      </div>
+      <div class="seg" id="mode-seg">
+        <button data-mode="object" class="on">Object</button>
+        <button data-mode="enclosure">Enclosure</button>
+      </div>
+      <div class="record">
+        <div class="ring" id="record" role="button" tabindex="0" aria-label="Start capture">
+          <span class="core"></span>
+        </div>
+        <div class="hint" id="record-hint">tap to start · records to your phone</div>
+      </div>
+      <video id="cam" playsinline muted></video>
+      <div class="eyebrow" style="margin:4px 2px 8px">pre-flight — tap each as you go</div>
+      <div class="checklist" id="checklist"></div>
+    </section>
+
+    <!-- OBJECTS -->
+    <section id="view-objects" class="view">
+      <div class="view-head">
+        <div>
+          <div class="eyebrow">everything you've found</div>
+          <h1>Objects</h1>
+        </div>
+        <span class="count" id="find-count"></span>
+      </div>
+      <div class="filters" id="filters"></div>
+      <div class="finds" id="finds"></div>
+    </section>
+  </main>
+</div>
+
+<nav class="tabbar">
+  <button data-view="collection" class="on" aria-label="Collection">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg>
+    Collection
+  </button>
+  <button data-view="capture" aria-label="Capture">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="4.2"/><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.2l1-2h6.6l1 2h1.2A2.5 2.5 0 0 1 20 8.5V17a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17z"/></svg>
+    Capture
+  </button>
+  <button data-view="objects" aria-label="Objects">
+    <svg viewBox="0 0 24 24"><path d="M20.5 13.3 12.7 21a2 2 0 0 1-2.8 0l-6.9-6.9a2 2 0 0 1-.6-1.4V5a2 2 0 0 1 2-2h4.7a2 2 0 0 1 1.4.6l7 7a2 2 0 0 1 0 2.7z"/><circle cx="8.5" cy="8.5" r="1.4"/></svg>
+    Objects
+  </button>
+</nav>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

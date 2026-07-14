@@ -1,0 +1,27 @@
+{
+  "scenes": [
+    { "id": "office", "name": "Home Office", "mode": "enclosure", "captured": "2026-07-12", "hue": 40,
+      "splat": "../viewer/assets/scene.spz", "scene": "../viewer/assets/scene.json",
+      "stats": { "gaussians": 1180000, "objects": 14, "frames": 212 } },
+    { "id": "bookshelf", "name": "Office Bookshelf", "mode": "object", "captured": "2026-07-12", "hue": 150,
+      "splat": "../viewer/assets/bookshelf.spz", "scene": "../viewer/assets/bookshelf.json",
+      "stats": { "gaussians": 640000, "objects": 22, "frames": 96 } },
+    { "id": "garage", "name": "Garage Bench", "mode": "object", "captured": "2026-07-10", "hue": 205,
+      "splat": null, "scene": null,
+      "stats": { "gaussians": 820000, "objects": 9, "frames": 140 } }
+  ],
+  "finds": [
+    { "label": "The Pragmatic Programmer", "category": "book", "scene": "Office Bookshelf", "confidence": 0.91 },
+    { "label": "Designing Data-Intensive Apps", "category": "book", "scene": "Office Bookshelf", "confidence": 0.88 },
+    { "label": "Clean Code", "category": "book", "scene": "Office Bookshelf", "confidence": 0.86 },
+    { "label": "potted plant", "category": "plant", "scene": "Home Office", "confidence": 0.79 },
+    { "label": "desk lamp", "category": "lamp", "scene": "Home Office", "confidence": 0.84 },
+    { "label": "monitor", "category": "monitor", "scene": "Home Office", "confidence": 0.93 },
+    { "label": "mechanical keyboard", "category": "keyboard", "scene": "Home Office", "confidence": 0.77 },
+    { "label": "coffee mug", "category": "mug", "scene": "Home Office", "confidence": 0.68 },
+    { "label": "office chair", "category": "chair", "scene": "Home Office", "confidence": 0.90 },
+    { "label": "cordless drill", "category": "tool", "scene": "Garage Bench", "confidence": 0.81 },
+    { "label": "socket set", "category": "tool", "scene": "Garage Bench", "confidence": 0.72 },
+    { "label": "bench vise", "category": "tool", "scene": "Garage Bench", "confidence": 0.74 }
+  ]
+}
