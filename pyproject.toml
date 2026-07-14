@@ -1,0 +1,16 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "heavy: needs torch / GPU / model downloads (skipped in the light CI)",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = [".venv", "data", "runs", "out"]
+
+[tool.ruff.lint]
+# Real-error-focused: pyflakes (F) + a subset of pycodestyle + import sorting.
+select = ["E", "F", "W", "I"]
+# E501 (line too long) is noise for docstrings/tables; comments handle intent.
+ignore = ["E501"]

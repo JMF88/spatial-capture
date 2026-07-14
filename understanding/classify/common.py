@@ -8,8 +8,8 @@ from __future__ import annotations
 import random
 from pathlib import Path
 
-import torch
 import timm
+import torch
 
 IMG_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 

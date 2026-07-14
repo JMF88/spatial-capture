@@ -1,0 +1,20 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install light deps
+        run: pip install pytest numpy pillow ruff
+      - name: Lint
+        run: ruff check .
+      - name: Test (light — no torch/GPU)
+        run: pytest -m "not heavy" -q

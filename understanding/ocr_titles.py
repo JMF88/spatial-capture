@@ -302,8 +302,10 @@ def _clamp_box(box, w, h, pad=0.02):
     if y2 < y1:
         y1, y2 = y2, y1
     px, py = (x2 - x1) * pad, (y2 - y1) * pad
-    x1 = int(max(0, x1 - px)); y1 = int(max(0, y1 - py))
-    x2 = int(min(w, x2 + px)); y2 = int(min(h, y2 + py))
+    x1 = int(max(0, x1 - px))
+    y1 = int(max(0, y1 - py))
+    x2 = int(min(w, x2 + px))
+    y2 = int(min(h, y2 + py))
     return x1, y1, x2, y2
 
 
