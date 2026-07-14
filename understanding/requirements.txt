@@ -24,3 +24,8 @@ opencv-python        # mask PNG I/O for detect.py
 # --- OCR + book lookup (feature B) ---
 easyocr              # spine-title OCR (handles rotation); pulls its own torch
 requests             # Open Library metadata lookup
+
+# --- optional: export the classifier to ONNX for in-browser inference ---
+onnx
+onnxruntime
+onnxscript           # torch.onnx.export backend on torch 2.x
