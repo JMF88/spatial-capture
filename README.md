@@ -66,7 +66,7 @@ python pipeline/01_extract_frames.py --input data/office/office.mp4 \
 # 2b. OPEN lane (reproducible): poses via VGGT, train via gsplat
 #     (see pipeline/README + ARCHITECTURE.md — CUDA build, run after the demo is safe)
 
-# 3. clean/compress the .ply in SuperSplat (superspl.at/editor), drop it in docs/assets/,
+# 3. clean/compress the .ply in SuperSplat (superspl.at/editor), drop it in docs/viewer/assets/,
 #    then enable GitHub Pages on /docs.  That URL is the demo.
 
 # 4. understanding branch (own venv):

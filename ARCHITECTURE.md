@@ -113,7 +113,7 @@ about which is which signals you actually understand the field.
 
 ### 5. Web viewer — `docs/` on GitHub Pages
 - **What:** a static page that loads the trained splat and renders it in-browser
-  with orbit controls — the URL the CEO opens on his own phone.
+  with orbit controls — the URL you open on any laptop or phone.
 - **Why this way:** a splat renders on a plain laptop/phone GPU; hosting is free
   and static (nothing to break live). A specific trap is avoided: viewers that need
   `SharedArrayBuffer` require COOP/COEP response headers that **GitHub Pages cannot
@@ -140,7 +140,7 @@ about which is which signals you actually understand the field.
 - **What:** a supervised image classifier via **transfer learning** — start from an
   ImageNet-pretrained backbone (timm), replace the head, **freeze the backbone** and
   warm up the head, then **unfreeze and fine-tune** at a low LR. Stratified
-  train/val/test split; early stopping on validation accuracy; evaluation with a
+  train/val/test split; early stopping on validation macro-F1; evaluation with a
   confusion matrix on a held-out set never seen in training.
 - **Why this way:** with only ~50–200 images, learning features from scratch would
   overfit instantly. Transfer learning reuses general visual features and only adapts
@@ -179,7 +179,7 @@ The repo is **MIT**. Deliberate, not incidental:
   (Apache-2.0). Nothing else imports it.
 
 Saying this unprompted demonstrates exactly the cost/license/security discipline a
-CISO worried about "AI-first" wants to hear — it's free credibility, not a footnote.
+security-conscious team wants to see — it's free credibility, not a footnote.
 
 ## Cost / eval / security discipline (productionization view)
 

@@ -121,6 +121,9 @@ def main() -> int:
         raise SystemExit("Need at least 2 class folders under --data.")
     print(f"Classes ({len(classes)}): {classes}")
     print(f"Split: train={len(tr)} val={len(va)} test={len(te)}   device={device}")
+    if not va:
+        raise SystemExit("Validation split is empty (each class has only 1 image). "
+                         "Add a few more images per class.")
     print(f"Backbone: {args.model}")
 
     model = common.build_model(args.model, len(classes), pretrained=True).to(device)

@@ -57,7 +57,9 @@ def run_vggt(scene_dir: Path, vggt_repo: Path, use_ba: bool) -> Path:
     if not demo.exists():
         raise SystemExit(f"demo_colmap.py not in {vggt_repo} "
                          "(git clone https://github.com/harry7557558/vggt-low-vram).")
-    cmd = [sys.executable, str(demo), f"--scene_dir={scene_dir}"]
+    # Resolve to absolute: the child runs with cwd=vggt_repo, so a relative
+    # --scene-dir would resolve against the wrong directory.
+    cmd = [sys.executable, str(demo.resolve()), f"--scene_dir={scene_dir.resolve()}"]
     if use_ba:  # bundle-adjust refine: better, more VRAM; throttled for 8 GB
         cmd += ["--use_ba", "--max_query_pts=2048", "--query_frame_num=5"]
     print("- VGGT:", " ".join(cmd))

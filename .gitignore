@@ -27,7 +27,14 @@ out/
 mobileclip*.ts
 
 # Large raw splats live in data/ (ignored above). The demo splat under
-# docs/assets/ IS tracked, so do NOT ignore *.ply / *.splat globally.
+# docs/viewer/assets/ IS tracked, so do NOT ignore *.ply / *.splat globally.
+
+# Never commit internal strategy/state notes or throwaway sample splats into this
+# public repo (defensive — these belong in the private project, not here)
+MEETING_PREP*.md
+SPATIAL_CAPTURE_STATE.md
+*_STATE.md
+**/_sample.*
 
 # OS
 .DS_Store

@@ -13,8 +13,8 @@ Try a prebuilt wheel first to avoid a compiler:
   git clone https://github.com/nerfstudio-project/gsplat
   pip install -r gsplat/examples/requirements.txt
 If no wheel matches your torch+CUDA, you need VS 2022 Build Tools + a CUDA Toolkit
-to build from source. If that fights you, DON'T burn the deadline - train in Jawset
-Postshot instead. This lane is the reproducible/open proof, not the demo path.
+to build from source. If that fights you, don't get blocked on the CUDA build -
+train in Postshot instead. This lane is the reproducible/open proof, not the demo path.
 
 Data dir must contain:  images/  and  sparse/0/{cameras,images,points3D}.bin
 
@@ -61,12 +61,16 @@ def main() -> int:
     print("- gsplat:", " ".join(cmd))
     subprocess.run(cmd, cwd=args.gsplat_examples, check=True)
 
-    ply = args.result_dir / "ply" / f"point_cloud_{args.steps}.ply"
-    if ply.exists():
+    # gsplat names the PLY by internal 0-indexed step (e.g. point_cloud_29999.ply
+    # for --steps 30000), and the exact name is version-dependent, so glob it.
+    ply_dir = args.result_dir / "ply"
+    plys = sorted(ply_dir.glob("point_cloud_*.ply")) if ply_dir.exists() else []
+    if plys:
+        ply = plys[-1]
         print(f"\nSplat PLY: {ply}")
         print(f"Validate before hosting:  python pipeline/validate_splat_ply.py {ply}")
     else:
-        print(f"\nTraining finished but no PLY at {ply} - check {args.result_dir}/ply/.")
+        print(f"\nTraining finished but no PLY under {ply_dir} - check the result dir.")
     return 0
 
 

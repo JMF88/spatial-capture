@@ -11,21 +11,21 @@ and where it heads. It doubles as the honest scope statement for the repo.
 | Frame extraction (`pipeline/01`) | **done, validated** on synthetic video |
 | Classifier train/eval/infer (`understanding/classify`) | **done, validated** end-to-end on the real torch/timm stack |
 | Open-vocab detector (`understanding/detect.py`) | **done**; verified API; smoke-tested on a sample image |
-| OCR + book lookup (`understanding/ocr_titles.py`) | scaffolded |
-| Splat — Postshot lane | doc'd; runs on JM's capture (human-in-loop) |
+| OCR + book lookup (`understanding/ocr_titles.py`) | implemented; not yet run on real crops |
+| Splat — Postshot lane | doc'd; ready to run on your capture |
 | Splat — open lane (VGGT→gsplat) | scripted + documented; CUDA build, run after the demo is safe |
 | Web viewer (`docs/`) | authored; validated against a sample splat |
 | Measurement overlay | in the viewer |
-| Docs (README / ARCHITECTURE / CAPTURE_GUIDE / MEETING_PREP) | authored |
+| Docs (README / ARCHITECTURE / ROADMAP / CAPTURE_GUIDE) | authored |
 
-_(Kept current as milestones land — see `SPATIAL_CAPTURE_STATE.md` for the internal log.)_
+_(Kept current as milestones land.)_
 
 ## Milestones
 
 - **M0 — repo + pipeline code (no capture needed).** Everything runnable, documented,
   validated with synthetic/sample data. ← we are here.
 - **M1 — first real capture.** Bookshelf (object). Frames → Postshot → `.ply` →
-  SuperSplat → `docs/` → live URL. This is the guaranteed WOW.
+  SuperSplat → `docs/` → live URL. This is the reliable first result.
 - **M2 — the enclosure.** Whole office, inside-out. The hard case that matters for real walkthroughs.
 - **M3 — understanding on real frames.** Detect books/objects → train the classifier
   on real spine crops → OCR reads titles → results surfaced beside the splat.
@@ -58,7 +58,7 @@ _(Kept current as milestones land — see `SPATIAL_CAPTURE_STATE.md` for the int
 
 ## If time collapses (cut order)
 
-Cut from the top; the bottom line still WOWs:
+Cut from the top; the bottom line still lands:
 1. Cut VGGT→gsplat open lane → keep Postshot only.
 2. Cut the OCR title-reading garnish.
 3. Cut the trained classifier → keep zero-shot detection only.

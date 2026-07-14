@@ -22,7 +22,7 @@ export). Then validate:
 ```
 python validate_splat_ply.py <exported.ply>
 ```
-This is what you SHOW on Friday — it can't break live.
+This is the reliable demo path — it can't break live.
 
 ### Open lane — VGGT -> gsplat (reproducible; the AI-aligned STORY)
 Best on the bounded bookshelf. Needs a working CUDA torch; gsplat's rasterizer is

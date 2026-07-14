@@ -95,8 +95,20 @@ def stratified_split(root, ratios=(0.7, 0.15, 0.15), seed=0):
         files = [p for p in (root / c).iterdir() if p.suffix.lower() in IMG_EXTS]
         rng.shuffle(files)
         n = len(files)
-        n_tr = int(n * ratios[0])
-        n_va = int(n * ratios[1])
+        if n == 0:
+            continue
+        # Guarantee non-empty splits for small classes: int(n*0.15) is 0 for n<=6,
+        # which would give an empty val set and crash macro-F1 downstream.
+        if n == 1:
+            n_tr, n_va, n_te = 1, 0, 0
+        elif n == 2:
+            n_tr, n_va, n_te = 1, 1, 0
+        else:
+            n_va = max(1, round(n * ratios[1]))
+            n_te = max(1, round(n * ratios[2]))
+            n_tr = n - n_va - n_te
+            if n_tr < 1:                       # tiny class: guarantee a train sample
+                n_tr, n_va, n_te = n - 2, 1, 1
         train += [(p, ci) for p in files[:n_tr]]
         val += [(p, ci) for p in files[n_tr:n_tr + n_va]]
         test += [(p, ci) for p in files[n_tr + n_va:]]
