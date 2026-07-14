@@ -1,17 +1,16 @@
 """Shared helpers for the book classifier (transfer learning with timm).
 
 Kept in one place so train / eval / infer agree on how the model is built, how
-images are transformed, and what a checkpoint contains.
+images are transformed, and what a checkpoint contains. Pure dataset-splitting
+lives in splits.py (torch-free, so it's unit-tested in the light CI).
 """
 from __future__ import annotations
 
 import random
-from pathlib import Path
 
 import timm
 import torch
-
-IMG_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
+from splits import IMG_EXTS, stratified_split  # noqa: F401  (re-exported for train/eval/infer)
 
 
 def seed_everything(seed: int = 0) -> None:
@@ -77,42 +76,6 @@ class ListDataset(torch.utils.data.Dataset):
         path, label = self.items[i]
         img = Image.open(path).convert("RGB")
         return self.transform(img), label
-
-
-def stratified_split(root, ratios=(0.7, 0.15, 0.15), seed=0):
-    """Split each class folder independently so all splits keep every class.
-
-    Layout expected:  root/<class_name>/<image files>
-    Returns (classes, train_items, val_items, test_items).
-    """
-    root = Path(root)
-    classes = sorted(d.name for d in root.iterdir() if d.is_dir())
-    if not classes:
-        raise SystemExit(f"No class subfolders found under {root}")
-    rng = random.Random(seed)
-    train, val, test = [], [], []
-    for ci, c in enumerate(classes):
-        files = [p for p in (root / c).iterdir() if p.suffix.lower() in IMG_EXTS]
-        rng.shuffle(files)
-        n = len(files)
-        if n == 0:
-            continue
-        # Guarantee non-empty splits for small classes: int(n*0.15) is 0 for n<=6,
-        # which would give an empty val set and crash macro-F1 downstream.
-        if n == 1:
-            n_tr, n_va, n_te = 1, 0, 0
-        elif n == 2:
-            n_tr, n_va, n_te = 1, 1, 0
-        else:
-            n_va = max(1, round(n * ratios[1]))
-            n_te = max(1, round(n * ratios[2]))
-            n_tr = n - n_va - n_te
-            if n_tr < 1:                       # tiny class: guarantee a train sample
-                n_tr, n_va, n_te = n - 2, 1, 1
-        train += [(p, ci) for p in files[:n_tr]]
-        val += [(p, ci) for p in files[n_tr:n_tr + n_va]]
-        test += [(p, ci) for p in files[n_tr + n_va:]]
-    return classes, train, val, test
 
 
 def save_checkpoint(path, model, classes, model_name):
