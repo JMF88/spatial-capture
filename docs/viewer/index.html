@@ -6,15 +6,31 @@
 <title>Spatial Capture - Splat Viewer</title>
 <!--
   Self-hosted 3D Gaussian-splat viewer. Renders ./assets/scene.ply (or
-  .splat/.spz/.sog/.ksplat) with orbit controls + a 2-point measurement overlay.
+  .splat/.spz/.sog/.ksplat) with orbit controls, a 2-point measurement overlay,
+  and a QUERYABLE-OBJECTS layer (the understanding branch laid over the splat).
 
   Built on Spark (sparkjs.dev, MIT). Chosen because it needs NO COOP/COEP
   response headers (its sort worker uses transferable ArrayBuffers, not
   SharedArrayBuffer), so it runs on plain GitHub Pages, and it's a real three.js
-  scene -- so understanding-branch labels and the measurement overlay are just
-  more objects in the same scene graph.
+  scene -- so understanding-branch labels, the measurement overlay, and the
+  object markers are just more objects in the same scene graph.
 
-  Query params:  ?src=./assets/other.spz   ?flip=z   (or x)
+  Query params:
+    ?src=./assets/other.spz     splat file to load
+    ?scene=./assets/scene.json  object overlay to load (default ./assets/scene.json)
+    ?flip=z   (or x)            fix an upside-down 3DGS .ply
+
+  scene.json is produced offline by the understanding branch (detect ->
+  classify -> OCR), lifted into the SPLAT's own world frame. Schema:
+    { "version":1, "splat":"./assets/scene.ply",
+      "objects":[ { "id":"obj_0007", "label":"The Pragmatic Programmer",
+        "category":"book", "keywords":["book","pragmatic","oreilly","hunt"],
+        "position":[x,y,z], "aabb":{"min":[..],"max":[..]},
+        "confidence":0.87, "source":{...} }, ... ] }
+  position/aabb are in the SAME world coordinates as the splat .ply (the COLMAP/
+  VGGT/Postshot frame the splat was trained in) and get the same ?flip applied,
+  so a marker sits on the real object.
+
   Runtime deps load from CDN via the importmap below (GitHub Pages allows CDNs).
   For a permanent portfolio link, vendor three + spark into ./vendor/ and
   repoint the importmap -- that drops the runtime third-party dependency.
@@ -35,6 +51,36 @@
   .label { position: absolute; transform: translate(-50%, -140%);
     background: #0b0d10cc; border: 1px solid #1f6feb; border-radius: 6px;
     padding: 3px 7px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+  /* object-overlay labels: dimmer than measurement, brighten on a search hit */
+  .olabel { position: absolute; transform: translate(-50%, -140%); z-index: 3;
+    background: #0b0d10aa; border: 1px solid #30363d; border-radius: 6px;
+    padding: 2px 6px; white-space: nowrap; color: #9fb0c0; max-width: 42vw;
+    overflow: hidden; text-overflow: ellipsis; opacity: .55; transition: opacity .15s; }
+  .olabel.hit { color: #e6edf3; border-color: #f7b955; background: #1a1206ee;
+    opacity: 1; font-weight: 600; box-shadow: 0 0 0 1px #f7b95566, 0 2px 10px #000a; }
+  .olabel.sel { border-color: #f7b955; box-shadow: 0 0 0 2px #f7b95588, 0 2px 14px #000c; }
+  .olabel.dim { opacity: .12; }
+
+  /* search panel (top-right) */
+  #panel { position: fixed; top: 10px; right: 10px; width: min(300px, 46vw);
+    z-index: 6; display: flex; flex-direction: column; gap: 6px; }
+  #q { width: 100%; box-sizing: border-box; background: #161b22ee; color: #e6edf3;
+    border: 1px solid #30363d; border-radius: 8px; padding: 8px 10px; font: inherit;
+    backdrop-filter: blur(6px); }
+  #q:focus { outline: none; border-color: #1f6feb; }
+  #results { list-style: none; margin: 0; padding: 0; max-height: 46vh; overflow-y: auto;
+    display: none; background: #0d1117ee; border: 1px solid #30363d; border-radius: 8px;
+    backdrop-filter: blur(6px); }
+  #results.show { display: block; }
+  .rrow { padding: 7px 10px; cursor: pointer; border-bottom: 1px solid #21262d; display: flex;
+    gap: 8px; align-items: baseline; }
+  .rrow:last-child { border-bottom: 0; }
+  .rrow:hover, .rrow.sel { background: #1f6feb33; }
+  .rrow .cat { color: #7d8590; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  .rrow .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rrow .sc { color: #7d8590; font-variant-numeric: tabular-nums; }
+  #rcount { color: #7d8590; padding: 2px 2px; min-height: 1em; }
   #hint { position: fixed; bottom: 10px; left: 10px; opacity: .6; z-index: 5; }
 </style>
 </head>
@@ -44,6 +90,12 @@
   <button id="btnReset">Reframe</button>
   <button id="btnFlip">Flip</button>
   <button id="btnMeasure">Measure</button>
+  <button id="btnObjects" class="active">Objects</button>
+</div>
+<div id="panel">
+  <input id="q" type="search" placeholder="Search objects... (e.g. book, plant, lamp)" autocomplete="off">
+  <div id="rcount"></div>
+  <ul id="results"></ul>
 </div>
 <div id="status">Loading...</div>
 <div id="labels"></div>
@@ -66,6 +118,7 @@ import { SparkRenderer, SplatMesh } from "@sparkjsdev/spark";
 
 const params = new URLSearchParams(location.search);
 const SRC = params.get("src") || "./assets/scene.ply"; // .ply/.splat/.spz/.sog/.ksplat
+const SCENE_JSON = params.get("scene") || "./assets/scene.json";
 const statusEl = document.getElementById("status");
 const labelsEl = document.getElementById("labels");
 
@@ -88,6 +141,23 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
 
+// A group that carries the same ?flip as the splat, so object markers stay
+// glued to the reconstruction when the user flips it. Markers/measurement live
+// OUTSIDE it (they're authored in the flipped world the user actually sees).
+const flipGroup = new THREE.Group();
+scene.add(flipGroup);
+
+// ---- shared world->screen projection (used by measurement AND object labels) ----
+const _p = new THREE.Vector3();
+function projectToScreen(worldVec) {
+  _p.copy(worldVec).project(camera);
+  return {
+    x: (_p.x * 0.5 + 0.5) * innerWidth,
+    y: (-_p.y * 0.5 + 0.5) * innerHeight,
+    behind: _p.z > 1,           // clipped by / behind the far or near plane
+  };
+}
+
 // ---- load the splat ----
 let sceneRadius = 1;
 const splat = new SplatMesh({
@@ -98,8 +168,10 @@ const splat = new SplatMesh({
     console.info("[spatial-capture] splat loaded:", SRC);
   }
 });
-scene.add(splat);
+flipGroup.add(splat);
 splat.initialized?.catch(err => {
+  // The splat failing to load must NOT take down the object overlay -- they are
+  // independent layers. Surface the error but keep the page interactive.
   statusEl.style.display = "grid";
   statusEl.className = "err";
   statusEl.textContent = "Failed to load " + SRC + "\n" + err;
@@ -110,9 +182,10 @@ splat.initialized?.catch(err => {
 let flipState = params.get("flip") || "none";
 applyFlip();
 function applyFlip() {
-  splat.rotation.set(0, 0, 0);
-  if (flipState === "x") splat.rotation.x = Math.PI;
-  else if (flipState === "z") splat.rotation.z = Math.PI;
+  flipGroup.rotation.set(0, 0, 0);
+  if (flipState === "x") flipGroup.rotation.x = Math.PI;
+  else if (flipState === "z") flipGroup.rotation.z = Math.PI;
+  flipGroup.updateMatrixWorld(true);
 }
 
 function frameToObject(mesh) {
@@ -123,19 +196,249 @@ function frameToObject(mesh) {
   const size = new THREE.Vector3(); box.getSize(size);
   const center = new THREE.Vector3(); box.getCenter(center);
   sceneRadius = Math.max(size.x, size.y, size.z) * 0.5 || 1;
-  controls.target.copy(center);
-  const dist = sceneRadius / Math.tan((camera.fov * Math.PI / 180) / 2) * 1.5;
-  camera.position.copy(center).add(new THREE.Vector3(0, 0, dist));
+  frameToSphere(center, sceneRadius, 1.5);
+}
+
+// Reusable camera framing: point at `center`, back off to fit a sphere of
+// `radius`. Shared by Reframe and by object focus (search hit / result click).
+function frameToSphere(center, radius, pad = 1.6, animate = false) {
+  const dist = radius / Math.tan((camera.fov * Math.PI / 180) / 2) * pad;
+  const dir = new THREE.Vector3().subVectors(camera.position, controls.target).normalize();
+  if (!isFinite(dir.length()) || dir.length() < 1e-6) dir.set(0, 0, 1);
+  const toPos = new THREE.Vector3().copy(center).add(dir.multiplyScalar(dist));
   camera.near = Math.max(dist / 100, 1e-3);
   camera.far = dist * 100;
   camera.updateProjectionMatrix();
-  controls.update();
+  if (animate) startTween(toPos, center);
+  else { camera.position.copy(toPos); controls.target.copy(center); controls.update(); }
+}
+
+// ---- small camera tween (ease-out) for search-hit / result-click focus ----
+let tween = null;
+function startTween(toPos, toTarget, dur = 500) {
+  tween = { p0: camera.position.clone(), t0: controls.target.clone(),
+            p1: toPos.clone(), t1: toTarget.clone(), start: performance.now(), dur };
+}
+function updateTween() {
+  if (!tween) return;
+  const k = Math.min(1, (performance.now() - tween.start) / tween.dur);
+  const e = 1 - Math.pow(1 - k, 3); // ease-out cubic
+  camera.position.lerpVectors(tween.p0, tween.p1, e);
+  controls.target.lerpVectors(tween.t0, tween.t1, e);
+  if (k >= 1) tween = null;
 }
 
 addEventListener("resize", () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
+});
+
+// =====================================================================
+//  QUERYABLE OBJECTS  (scene.json -> markers + labels + search + focus)
+// =====================================================================
+const markerTex = makeDiscTexture();
+let objects = [];              // { id,label,category,keywords,pos,radius,el,sprite,base }
+let currentHits = new Set();   // ids highlighted by the active query (source of truth)
+let objectsVisible = true;
+const objRaycaster = new THREE.Raycaster();
+const objPointer = new THREE.Vector2();
+const objGroup = new THREE.Group();
+flipGroup.add(objGroup);        // markers ride the same ?flip as the splat
+const _wp = new THREE.Vector3(); // scratch for marker world positions
+
+window.__objectsReady = false; // headless-verification signals (see verify.mjs)
+window.__sceneObjects = [];
+window.__queryResult = null;
+
+function makeDiscTexture() {
+  // soft radial disc drawn to a canvas -> no external asset, works headless
+  const s = 64, cvs = document.createElement("canvas"); cvs.width = cvs.height = s;
+  const g = cvs.getContext("2d");
+  const grad = g.createRadialGradient(s/2, s/2, 0, s/2, s/2, s/2);
+  grad.addColorStop(0, "rgba(255,255,255,1)");
+  grad.addColorStop(0.55, "rgba(255,255,255,0.9)");
+  grad.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = grad; g.beginPath(); g.arc(s/2, s/2, s/2, 0, Math.PI*2); g.fill();
+  const t = new THREE.CanvasTexture(cvs); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+
+async function loadObjects(url) {
+  let data;
+  try {
+    const res = await fetch(url, { cache: "no-cache" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    data = await res.json();
+  } catch (e) {
+    // No overlay is a valid state -- the viewer is still a splat viewer.
+    console.info("[objects] no scene.json (" + e.message + "); overlay disabled");
+    window.__objectsReady = true;
+    return;
+  }
+  const raw = Array.isArray(data) ? data : (data.objects || []);
+  // marker world-size / default focus radius from the spread of object positions,
+  // so it's sensible even before the splat's bounding box is known.
+  const bb = new THREE.Box3();
+  raw.forEach(o => bb.expandByPoint(new THREE.Vector3().fromArray(o.position)));
+  const span = bb.isEmpty() ? 1 : bb.getSize(new THREE.Vector3()).length();
+  const markerBase = Math.max(span * 0.018, 1e-3);
+
+  objects = raw.map(o => {
+    const pos = new THREE.Vector3().fromArray(o.position);
+    // per-object radius for framing: half the AABB diagonal, else a small default
+    let radius = span * 0.12;
+    if (o.aabb) {
+      const mn = new THREE.Vector3().fromArray(o.aabb.min);
+      const mx = new THREE.Vector3().fromArray(o.aabb.max);
+      radius = Math.max(mn.distanceTo(mx) * 0.5, markerBase);
+    }
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: markerTex, color: 0x2f6f97, transparent: true,
+      depthTest: false, depthWrite: false, sizeAttenuation: true,
+    }));
+    sprite.position.copy(pos);
+    sprite.scale.setScalar(markerBase);
+    sprite.renderOrder = 999;           // draw on top of the splat
+    sprite.userData.objId = o.id;
+    objGroup.add(sprite);
+
+    const el = document.createElement("div");
+    el.className = "olabel";
+    el.textContent = o.label || o.category || o.id;
+    el.title = o.label || "";
+    labelsEl.appendChild(el);
+
+    const keywords = (o.keywords || []).map(s => String(s).toLowerCase());
+    const hay = [o.label, o.category, ...keywords].filter(Boolean).join(" ").toLowerCase();
+    return { id: o.id, label: o.label || o.category || o.id, category: o.category || "",
+             keywords, hay, pos, radius, el, sprite, base: markerBase };
+  });
+
+  window.__sceneObjects = objects.map(o => ({ id: o.id, label: o.label, category: o.category }));
+  window.__objectsReady = true;
+  console.info("[objects] loaded", objects.length, "objects from", url);
+}
+
+function scoreObject(o, tokens) {
+  if (!tokens.length) return 0;
+  let score = 0;
+  for (const tk of tokens) {
+    if (!tk) continue;
+    if (o.category && o.category.toLowerCase() === tk) score += 3;      // exact category
+    else if (o.label.toLowerCase() === tk) score += 3;                  // exact label
+    else if (o.label.toLowerCase().startsWith(tk)) score += 2.2;
+    else if (o.keywords.includes(tk)) score += 2;                       // exact keyword
+    else if (o.hay.includes(tk)) score += 1;                            // substring anywhere
+  }
+  return score / tokens.length; // require ALL tokens to contribute to rank well
+}
+
+// Filter + highlight for the current query. Returns the ranked hit list.
+function runQuery(qStr) {
+  const q = (qStr || "").trim().toLowerCase();
+  const tokens = q ? q.split(/\s+/) : [];
+  const scored = objects.map(o => ({ o, s: q ? scoreObject(o, tokens) : 0 }));
+  const hits = scored.filter(x => x.s > 0).sort((a, b) => b.s - a.s);
+  currentHits = new Set(hits.map(x => x.o.id));
+
+  for (const o of objects) {
+    const isHit = currentHits.has(o.id);
+    const active = q.length > 0;
+    o.el.classList.toggle("hit", isHit);
+    o.el.classList.remove("sel");                          // Enter/click re-adds it
+    o.el.classList.toggle("dim", active && !isHit);        // fade non-matches when searching
+    o.sprite.material.color.setHex(isHit ? 0xf7b955 : 0x2f6f97);
+    o.sprite.scale.setScalar(isHit ? o.base * 2.1 : o.base);
+  }
+  renderResults(hits, q);
+
+  window.__queryResult = { q, count: hits.length, hits: hits.map(x => x.o.id) };
+  console.info("[objects] query", JSON.stringify(q), "->", hits.length, "hits",
+               JSON.stringify(hits.map(x => x.o.id)));
+  return hits;
+}
+
+function renderResults(hits, q) {
+  const ul = document.getElementById("results");
+  const rc = document.getElementById("rcount");
+  ul.innerHTML = "";
+  if (!q) { ul.classList.remove("show"); rc.textContent = ""; return; }
+  rc.textContent = hits.length + (hits.length === 1 ? " match" : " matches");
+  hits.slice(0, 50).forEach((h, i) => {
+    const li = document.createElement("li");
+    li.className = "rrow" + (i === 0 ? " sel" : "");
+    li.dataset.objId = h.o.id;
+    li.innerHTML =
+      `<span class="cat">${escapeHtml(h.o.category || "obj")}</span>` +
+      `<span class="nm">${escapeHtml(h.o.label)}</span>` +
+      `<span class="sc">${h.s.toFixed(1)}</span>`;
+    li.onclick = () => { focusObject(h.o.id); selectRow(li); };
+    ul.appendChild(li);
+  });
+  ul.classList.add("show");
+}
+function selectRow(li) {
+  li.parentNode.querySelectorAll(".rrow.sel").forEach(r => r.classList.remove("sel"));
+  li.classList.add("sel");
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// Frame the camera on one object (search Enter, result click, or marker click).
+function focusObject(id) {
+  const o = objects.find(x => x.id === id);
+  if (!o) return;
+  // Keep every active-query match highlighted; just add extra emphasis (.sel) to
+  // the focused one. With no active query, currentHits is empty, so this pops
+  // ONLY the clicked marker -- the click-a-result / click-a-marker flow.
+  for (const x of objects) {
+    const inHits = currentHits.has(x.id);
+    const isSel = x.id === id;
+    const on = inHits || isSel;
+    x.el.classList.toggle("hit", on);
+    x.el.classList.toggle("sel", isSel);
+    x.sprite.material.color.setHex(on ? 0xf7b955 : 0x2f6f97);
+    x.sprite.scale.setScalar(isSel ? x.base * 2.6 : on ? x.base * 2.1 : x.base);
+  }
+  o.sprite.updateWorldMatrix(true, false);
+  frameToSphere(o.sprite.getWorldPosition(_wp), o.radius, 2.4, /*animate=*/true);
+  window.__focusedObject = id;
+  console.info("[objects] focus", id);
+}
+
+function renderObjectLabels() {
+  for (const o of objects) {
+    if (!objectsVisible) { o.el.style.display = "none"; continue; }
+    const sp = projectToScreen(o.sprite.getWorldPosition(_wp));
+    if (sp.behind) { o.el.style.display = "none"; continue; }
+    o.el.style.display = "block";
+    o.el.style.left = sp.x + "px";
+    o.el.style.top = sp.y + "px";
+  }
+}
+
+// click a marker in 3D to focus it (disabled while measuring, so the two
+// canvas interactions never fight).
+canvas.addEventListener("pointerup", e => {
+  if (measureMode || !objectsVisible || !e.isPrimary) return;
+  if (e.pointerType === "mouse" && e.button !== 0) return;
+  if (Math.hypot(e.clientX - downX, e.clientY - downY) > 10) return; // was an orbit drag
+  objPointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  objRaycaster.setFromCamera(objPointer, camera);
+  objRaycaster.params.Sprite = { threshold: 0 };
+  const hit = objRaycaster.intersectObjects(objGroup.children, false)[0];
+  if (hit) focusObject(hit.object.userData.objId);
+});
+
+// ---- search box wiring ----
+const qEl = document.getElementById("q");
+qEl.addEventListener("input", () => runQuery(qEl.value));   // live filter/highlight
+qEl.addEventListener("keydown", e => {
+  if (e.key !== "Enter") return;
+  const hits = runQuery(qEl.value);
+  if (hits.length) focusObject(hits[0].o.id);               // frame the top hit
 });
 
 // ---- 2-point measurement overlay (toggle with Measure) ----
@@ -192,11 +495,12 @@ function clearMeasure() {
 function updateLabel() {
   if (markers.length < 2) { measureLabel.style.display = "none"; return; }
   const a = markers[0].position, b = markers[1].position;
-  const mid = a.clone().add(b).multiplyScalar(0.5).project(camera);
-  if (mid.z > 1) { measureLabel.style.display = "none"; return; }
+  const mid = a.clone().add(b).multiplyScalar(0.5);
+  const sp = projectToScreen(mid);
+  if (sp.behind) { measureLabel.style.display = "none"; return; }
   measureLabel.style.display = "block";
-  measureLabel.style.left = ((mid.x * 0.5 + 0.5) * innerWidth) + "px";
-  measureLabel.style.top = ((-mid.y * 0.5 + 0.5) * innerHeight) + "px";
+  measureLabel.style.left = sp.x + "px";
+  measureLabel.style.top = sp.y + "px";
   measureLabel.textContent = a.distanceTo(b).toFixed(3) + " units";
 }
 
@@ -213,13 +517,24 @@ btnMeasure.onclick = () => {
   btnMeasure.classList.toggle("active", measureMode);
   if (!measureMode) clearMeasure();
 };
+const btnObjects = document.getElementById("btnObjects");
+btnObjects.onclick = () => {
+  objectsVisible = !objectsVisible;
+  btnObjects.classList.toggle("active", objectsVisible);
+  objGroup.visible = objectsVisible;
+};
 
 // ---- render loop ----
 renderer.setAnimationLoop(() => {
+  updateTween();
   controls.update();
   renderer.render(scene, camera);
   updateLabel();
+  renderObjectLabels();
 });
+
+// kick off the object overlay (independent of splat load success)
+loadObjects(SCENE_JSON);
 </script>
 </body>
 </html>
