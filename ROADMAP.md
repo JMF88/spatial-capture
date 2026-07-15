@@ -16,11 +16,12 @@ and where it heads. It doubles as the honest scope statement for the repo.
 | Spine→title match policy (`understanding/matching.py`) | **done, tested** — coverage-scaled containment; killed a real false positive (0.900 → 0.256) with recall intact |
 | Splat — Postshot lane | doc'd; ready to run on your capture |
 | Splat — open lane (VGGT→gsplat) | scripted + documented; CUDA build, run after the demo is safe |
-| Queryable web viewer (`docs/viewer`) | **done, verified headless** — orbit + measure + search→3D highlight |
+| Queryable web viewer (`docs/viewer`) | **done, verified headless** — orbit + measure + search→3D highlight + passphrase gate |
+| Metric calibration (`docs/viewer/scale.js`) | **done, tested** — one known length → real units scene-wide; shareable via `?scale=`; reports its own error |
 | Semantic fusion (`understanding/fusion`) | **done, tested** — lifts 2D detections into a 3D scene graph (scene.json) |
 | Query CLI (`understanding/query.py`) | **done, tested** — terminal + `--json` for an agent |
 | Orchestrator + eval gate (`pipeline/run.py`, `gate.py`) | **done, tested** — config-driven, threshold-gated |
-| Test suite + CI (`tests/`, `.github`) | **done, green** — 20 tests, ruff |
+| Test suite + CI (`tests/`, `.github`) | **done, green** — 51 tests, ruff. Several are built from real failures rather than invented ones. |
 | Classifier → ONNX (`export_onnx.py`) | **done** — torch↔onnx parity verified (browser-ready) |
 | Capture app (`docs/app`) | **done, verified headless** — Trove: capture coach + WiFi import + collection + object catalog (installable PWA). Not a camera, by platform necessity — see README. |
 | Docs (README / ARCHITECTURE / ROADMAP / CAPTURE_GUIDE) | authored |
@@ -56,9 +57,12 @@ _(Kept current as milestones land.)_
 - **AR headset overlay.** The same pipeline made real-time and head-mounted:
   capture → reconstruct → detect/classify → overlay in view. This repo is the honest
   step 1. Not a 2-day build; a roadmap conversation.
-- **Digital twins / measurement.** Metric geometry on top of the splat (pair 3DGS with
-  a mesh lane, e.g. 2DGS/SuGaR) → dimensioned walkthroughs. Plays to the civil-engineer
-  and "enclosure" angles; the natural client productization.
+- **Digital twins / measurement.** Reference-based calibration has landed (`scale.js`):
+  one known length in the shot makes the whole scene dimensioned, and the viewer states
+  its own error rather than implying precision. What is still ahead is *geometry* you can
+  trust without a reference — pair 3DGS with a mesh lane (2DGS/SuGaR) for surfaces and
+  true metric extraction. Plays to the civil-engineer and "enclosure" angles; the natural
+  client productization.
 - **Language-queryable splats.** LangSplat-style features baked into the Gaussians so
   the 3D scene itself is text-searchable ("find the fire extinguisher") — the bridge
   between the two branches.

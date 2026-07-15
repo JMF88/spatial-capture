@@ -19,6 +19,7 @@
     ?src=./assets/other.spz     splat file to load
     ?scene=./assets/scene.json  object overlay to load (default ./assets/scene.json)
     ?flip=z   (or x)            fix an upside-down 3DGS .ply
+    ?scale=<m-per-unit>,<unit>  metric calibration (Set scale writes it; see scale.js)
 
   scene.json is produced offline by the understanding branch (detect ->
   classify -> OCR), lifted into the SPLAT's own world frame. Schema:
@@ -99,6 +100,11 @@
   .rrow .sc { color: #7d8590; font-variant-numeric: tabular-nums; }
   #rcount { color: #7d8590; padding: 2px 2px; min-height: 1em; }
   #hint { position: fixed; bottom: 10px; left: 10px; opacity: .6; z-index: 5; }
+  /* An uncalibrated reading is a number without a meaning; make it look like one. */
+  .label.uncal { border-color: #30363d; color: #9fb0c0; }
+  #scalebadge { position: fixed; bottom: 10px; right: 10px; z-index: 5; display: none;
+    background: #161b22cc; border: 1px solid #30363d; border-radius: 8px; padding: 5px 9px;
+    color: #9fb0c0; font-variant-numeric: tabular-nums; backdrop-filter: blur(6px); }
 
   /* The HUD row needs ~284px. #panel is right-anchored at min(300px,46vw), so below
      ~545px the two cross -- and #panel wins on z-index, swallowing taps on Objects.
@@ -114,6 +120,7 @@
   <button id="btnReset">Reframe</button>
   <button id="btnFlip">Flip</button>
   <button id="btnMeasure">Measure</button>
+  <button id="btnScale" title="Measure a known length first, then set its real size">Set scale</button>
   <button id="btnObjects" class="active">Objects</button>
 </div>
 <div id="panel">
@@ -135,6 +142,7 @@
   </form>
 </div>
 <div id="labels"></div>
+<div id="scalebadge"></div>
 <div id="hint">drag = orbit / scroll or pinch = zoom / right-drag = pan</div>
 
 <script type="importmap">
@@ -152,6 +160,8 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { SparkRenderer, SplatMesh } from "@sparkjsdev/spark";
 import { decryptAsset, isEncrypted } from "./decrypt.js";
+import { UNITS, DEFAULT_UNIT, metresPerUnit, formatDistance, relativeError,
+         encodeCalibration, decodeCalibration } from "./scale.js";
 
 const params = new URLSearchParams(location.search);
 const SRC = params.get("src") || "./assets/scene.ply"; // .ply/.splat/.spz/.sog/.ksplat
@@ -559,10 +569,16 @@ qEl.addEventListener("keydown", e => {
 });
 
 // ---- 2-point measurement overlay (toggle with Measure) ----
-// Splats have no polygonal surface to raycast, so we pick against a plane
-// through the orbit target facing the camera. Distances are in SCENE UNITS --
-// calibrate against one known real dimension to convert to meters (see README).
+// Splats have no polygonal surface to raycast, so we pick against a plane through the
+// orbit target facing the camera.
+//
+// Distances are in SCENE UNITS until calibrated: structure-from-motion recovers geometry
+// but not size, so the reconstruction is correct up to one unknown scalar. Measure one
+// thing you know the size of (Set scale), and every measurement after it is in real
+// units -- see scale.js. Uncalibrated readings say "scene units" out loud rather than
+// implying a precision that isn't there.
 let measureMode = false;
+let calibration = decodeCalibration(params.get("scale"));   // shared links stay calibrated
 const markers = [];
 let measureLine = null;
 const measureLabel = document.createElement("div");
@@ -618,10 +634,57 @@ function updateLabel() {
   measureLabel.style.display = "block";
   measureLabel.style.left = sp.x + "px";
   measureLabel.style.top = sp.y + "px";
-  measureLabel.textContent = a.distanceTo(b).toFixed(3) + " units";
+  measureLabel.textContent = formatDistance(a.distanceTo(b), calibration);
+  measureLabel.classList.toggle("uncal", !calibration);
+}
+
+// ---- Set scale: one known length calibrates the whole scene ----
+// The reference is the point of the tape measure lying in the capture. Prompt() is used
+// deliberately: this is a two-field interaction on a rare path, and a bespoke modal would
+// be more code than the feature.
+function setScale() {
+  if (markers.length < 2) {
+    statusEl.style.display = "grid";
+    statusEl.className = "";
+    statusEl.textContent = "Measure something you know the size of first,\nthen press Set scale.";
+    setTimeout(() => { statusEl.style.display = "none"; }, 2600);
+    return;
+  }
+  const sceneDistance = markers[0].position.distanceTo(markers[1].position);
+  const unit = (prompt("Units for the known length? mm / cm / m / in / ft", calibration?.unit || DEFAULT_UNIT) || "").trim();
+  if (!unit) return;
+  if (!UNITS[unit]) { alert(`Unknown unit "${unit}". Use one of: ${Object.keys(UNITS).join(", ")}`); return; }
+  const raw = prompt(`How long is that really, in ${unit}?\n(A tape measure in the shot is the easiest reference. Longer is better: the same click error over three times the length is three times less error.)`, "");
+  if (raw === null) return;
+  const realLength = Number.parseFloat(raw);
+  try {
+    calibration = { metresPerUnit: metresPerUnit(sceneDistance, realLength, unit), unit };
+  } catch (err) {
+    alert(String(err.message || err));
+    return;
+  }
+  // Put it in the URL so the calibrated scene is shareable -- a measurement nobody else
+  // can reproduce is a party trick.
+  const u = new URL(location.href);
+  u.searchParams.set("scale", encodeCalibration(calibration));
+  history.replaceState(null, "", u);
+  const err = relativeError(sceneDistance, sceneRadius * 0.004);  // ~one marker radius of pick slop
+  updateLabel();
+  updateScaleBadge(err);
+}
+
+function updateScaleBadge(err) {
+  const el = document.getElementById("scalebadge");
+  if (!calibration) { el.style.display = "none"; return; }
+  el.style.display = "block";
+  const pct = Number.isFinite(err) ? ` · ±${(err * 100).toFixed(1)}% from the reference pick` : "";
+  el.textContent = `scale set · showing ${UNITS[calibration.unit].label}${pct}`;
 }
 
 // ---- HUD ----
+// A shared ?scale= link arrives already calibrated; say so without a fresh reference pick.
+if (calibration) updateScaleBadge(Infinity);
+document.getElementById("btnScale").onclick = setScale;
 document.getElementById("btnReset").onclick = () => { if (splat) frameToObject(splat); };
 document.getElementById("btnFlip").onclick = () => {
   flipState = flipState === "none" ? "z" : flipState === "z" ? "x" : "none";

@@ -39,7 +39,7 @@ One capture feeds two branches, which are then **fused into one queryable scene*
              |
           VIEW + QUERY   a URL renders the space; type "book" and it lights up in 3D
                          [docs/viewer]  ·  terminal/agent: [understanding/query.py]
-          MEASURE        in-viewer dimensions (the civil-engineer touch)
+          MEASURE        one known length -> real units, scene-wide  [docs/viewer/scale.js]
 ```
 
 - **Reconstruction is optimization.** A Gaussian splat is not "modeled" — it is *optimized*: differentiable rendering plus gradient descent fit a cloud of 3D Gaussians to your photos until the rendered views match the real ones. No labels, no training set.
@@ -108,6 +108,16 @@ python understanding/query.py docs/viewer/assets/scene.json "book"
 
 # 6. compress the PLY in SuperSplat -> docs/viewer/assets/, enable GitHub Pages on /docs. That URL is the demo.
 ```
+
+## Measuring a splat (scene units → real units)
+
+Structure-from-motion recovers geometry but not size. Move every camera twice as far apart and the photos come out identical, so the solve is only ever correct **up to one unknown scalar** — which is why photoreal capture gets written off as "not measurable" and why the viewer says *scene units* until you tell it otherwise.
+
+One known length fixes that scalar for the whole scene. Put something you know the size of in the shot — a tape measure costs nothing and is the surveyor's habit — then in the viewer: **Measure** it, press **Set scale**, and type what it really is. Every measurement after that is in real units, and the calibration rides in the URL (`?scale=`) so a shared link arrives already calibrated.
+
+The accuracy story, plainly: error is set by how precisely you can click the two reference points, and that click error is a fixed fraction of the **reference** length. So a longer reference is proportionally better — the same slop over a 72″ shelf is a third of the error it is over a 24″ tape (0.19% vs 0.57%, measured). Reach for the longest thing in the room you know the size of. The viewer shows the resulting figure next to the scale badge rather than quietly implying that three decimals means three decimals of truth.
+
+This is up-to-scale geometry made metric by a reference, not a survey instrument. It does not make a splat survey-grade; it makes it dimensioned.
 
 ## The capture app
 
