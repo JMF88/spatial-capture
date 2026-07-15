@@ -47,3 +47,14 @@ CAPTURE_TESTING_RUNBOOK.md
 # OS
 .DS_Store
 Thumbs.db
+
+# Gated scene assets: commit the .enc ciphertext, never the plaintext capture.
+# tools/encrypt_asset.py makes the .enc; the viewer decrypts it in-browser.
+docs/viewer/assets/*.ply
+docs/viewer/assets/*.spz
+docs/viewer/assets/*.sog
+docs/viewer/assets/*.splat
+docs/viewer/assets/*.ksplat
+!docs/viewer/assets/*.enc
+passphrase.txt
+*.passphrase

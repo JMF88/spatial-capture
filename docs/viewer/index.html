@@ -47,6 +47,22 @@
   #status { position: fixed; inset: 0; display: grid; place-items: center;
     pointer-events: none; z-index: 4; text-align: center; padding: 20px; white-space: pre-line; }
   #status.err { color: #ff7b72; }
+
+  /* passphrase gate: public code, private capture (see tools/encrypt_asset.py) */
+  #gate { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center;
+    background: #0b0d10; padding: 24px; }
+  #gate[hidden] { display: none; }
+  #gate form { width: min(400px, 100%); background: #0d1117; border: 1px solid #30363d;
+    border-radius: 12px; padding: 22px; }
+  #gate h2 { margin: 0 0 8px; font-size: 17px; }
+  #gate p { margin: 0 0 16px; color: #9fb0c0; line-height: 1.55; }
+  #gate input { width: 100%; box-sizing: border-box; background: #161b22; color: #e6edf3;
+    border: 1px solid #30363d; border-radius: 8px; padding: 10px 12px; font: inherit; }
+  #gate input:focus { outline: none; border-color: #1f6feb; }
+  #gate button { width: 100%; margin-top: 10px; background: #1f6feb; color: #fff; border: 0;
+    border-radius: 8px; padding: 10px; font: inherit; font-weight: 600; cursor: pointer; }
+  #gate button:hover { background: #388bfd; }
+  #gate-err { color: #ff7b72; min-height: 1.2em; margin-top: 9px; }
   #labels { position: fixed; inset: 0; pointer-events: none; z-index: 3; }
   .label { position: absolute; transform: translate(-50%, -140%);
     background: #0b0d10cc; border: 1px solid #1f6feb; border-radius: 6px;
@@ -98,6 +114,18 @@
   <ul id="results"></ul>
 </div>
 <div id="status">Loading...</div>
+<div id="gate" hidden>
+  <form id="gate-form">
+    <h2>This scene is private</h2>
+    <p>The pipeline, the viewer and every line of code here are public. The capture itself is
+       a real room, so the asset is encrypted. It decrypts in your browser &mdash; the passphrase
+       never leaves this page and nothing is sent anywhere.</p>
+    <input id="gate-pass" type="password" placeholder="passphrase" autocomplete="off"
+           autocapitalize="off" autocorrect="off" spellcheck="false">
+    <button type="submit">Unlock</button>
+    <div id="gate-err" role="alert"></div>
+  </form>
+</div>
 <div id="labels"></div>
 <div id="hint">drag = orbit / scroll or pinch = zoom / right-drag = pan</div>
 
@@ -115,6 +143,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { SparkRenderer, SplatMesh } from "@sparkjsdev/spark";
+import { decryptAsset, isEncrypted } from "./decrypt.js";
 
 const params = new URLSearchParams(location.search);
 const SRC = params.get("src") || "./assets/scene.ply"; // .ply/.splat/.spz/.sog/.ksplat
@@ -159,24 +188,78 @@ function projectToScreen(worldVec) {
 }
 
 // ---- load the splat ----
+// The asset may be gated. A `.enc` file is AES-256-GCM ciphertext (tools/encrypt_asset.py),
+// which is what lets the repo, the pipeline and this viewer all stay public while the scan
+// of a real room stays behind a passphrase. Decryption happens right here via WebCrypto:
+// no server to ask, no auth provider, nothing to host, and the page stays a static file.
 let sceneRadius = 1;
-const splat = new SplatMesh({
-  url: SRC,
-  onLoad: () => {
-    statusEl.style.display = "none";   // .hidden is overridden by #status{display:grid}
-    frameToObject(splat);
-    console.info("[spatial-capture] splat loaded:", SRC);
+let splat = null;
+
+function askPassphrase(message) {
+  return new Promise((resolve) => {
+    const gate = document.getElementById("gate");
+    const input = document.getElementById("gate-pass");
+    document.getElementById("gate-err").textContent = message || "";
+    statusEl.style.display = "none";
+    gate.hidden = false;
+    input.value = "";
+    input.focus();
+    document.getElementById("gate-form").onsubmit = (e) => {
+      e.preventDefault();
+      if (!input.value) return;
+      gate.hidden = true;
+      statusEl.style.display = "grid";
+      statusEl.className = "";
+      statusEl.textContent = "Decrypting...";
+      resolve(input.value);
+    };
+  });
+}
+
+async function resolveSource(src) {
+  if (!/\.enc$/i.test(src)) return { url: src };
+  const res = await fetch(src, { cache: "no-cache" });
+  if (!res.ok) throw new Error(`${res.status} fetching ${src}`);
+  const buf = await res.arrayBuffer();
+  if (!isEncrypted(buf)) return { url: src };   // named .enc but isn't -- let Spark try it
+  // Spark takes the format as a plain string, so recover it from the inner extension:
+  // scene.spz.enc -> "spz".
+  const ext = (src.replace(/\.enc$/i, "").match(/\.([a-z0-9]+)$/i)?.[1] || "ply").toLowerCase();
+  let msg = "";
+  for (;;) {
+    const phrase = await askPassphrase(msg);
+    try {
+      const plain = await decryptAsset(buf, phrase);
+      return { fileBytes: new Uint8Array(plain), fileType: ext };
+    } catch (_) {
+      msg = "Wrong passphrase. Try again.";   // GCM authenticates, so this is certain
+    }
   }
-});
-flipGroup.add(splat);
-splat.initialized?.catch(err => {
-  // The splat failing to load must NOT take down the object overlay -- they are
-  // independent layers. Surface the error but keep the page interactive.
-  statusEl.style.display = "grid";
-  statusEl.className = "err";
-  statusEl.textContent = "Failed to load " + SRC + "\n" + err;
-  console.error("[spatial-capture] load failed:", err);
-});
+}
+
+(async () => {
+  try {
+    const source = await resolveSource(SRC);
+    splat = new SplatMesh({
+      ...source,
+      onLoad: () => {
+        statusEl.style.display = "none";   // .hidden is overridden by #status{display:grid}
+        frameToObject(splat);
+        console.info("[spatial-capture] splat loaded:", SRC);
+      },
+    });
+    flipGroup.add(splat);
+    applyFlip();
+    await splat.initialized;
+  } catch (err) {
+    // The splat failing to load must NOT take down the object overlay -- they are
+    // independent layers. Surface the error but keep the page interactive.
+    statusEl.style.display = "grid";
+    statusEl.className = "err";
+    statusEl.textContent = "Failed to load " + SRC + "\n" + err;
+    console.error("[spatial-capture] load failed:", err);
+  }
+})();
 
 // 3DGS .ply often loads upside down; ?flip=x|z or the Flip button fixes it.
 let flipState = params.get("flip") || "none";
@@ -505,7 +588,7 @@ function updateLabel() {
 }
 
 // ---- HUD ----
-document.getElementById("btnReset").onclick = () => frameToObject(splat);
+document.getElementById("btnReset").onclick = () => { if (splat) frameToObject(splat); };
 document.getElementById("btnFlip").onclick = () => {
   flipState = flipState === "none" ? "z" : flipState === "z" ? "x" : "none";
   applyFlip();
