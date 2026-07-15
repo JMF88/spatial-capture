@@ -56,5 +56,9 @@ docs/viewer/assets/*.sog
 docs/viewer/assets/*.splat
 docs/viewer/assets/*.ksplat
 !docs/viewer/assets/*.enc
+# ...but underscore-prefixed files are throwaway probes for exercising the viewer.
+# This rule must stay AFTER the un-ignore above: last match wins, and without it the
+# un-ignore drags every _probe.ply.enc back into the repo.
+docs/viewer/assets/_*
 passphrase.txt
 *.passphrase
