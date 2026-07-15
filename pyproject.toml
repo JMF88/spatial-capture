@@ -7,7 +7,9 @@ markers = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-extend-exclude = [".venv", "data", "runs", "out"]
+# docs/viewer/vendor is third-party code committed verbatim (see its README): linting
+# someone else's build output would only ever produce noise we must not "fix".
+extend-exclude = [".venv", "data", "runs", "out", "docs/viewer/vendor"]
 
 [tool.ruff.lint]
 # Real-error-focused: pyflakes (F) + a subset of pycodestyle + import sorting.

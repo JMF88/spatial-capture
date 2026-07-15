@@ -32,9 +32,13 @@
   VGGT/Postshot frame the splat was trained in) and get the same ?flip applied,
   so a marker sits on the real object.
 
-  Runtime deps load from CDN via the importmap below (GitHub Pages allows CDNs).
-  For a permanent portfolio link, vendor three + spark into ./vendor/ and
-  repoint the importmap -- that drops the runtime third-party dependency.
+  Runtime deps are VENDORED into ./vendor/ -- see vendor/README.md for versions,
+  provenance and hashes. They used to load from a CDN at runtime, which meant the
+  demo was only up while two third-party hosts were: with the CDN blocked, this page
+  hung on "Loading..." forever, with no error, because an importmap failure means the
+  module script never executes and no handler ever runs. A portfolio link that dies
+  when someone else's host has a bad afternoon is not a portfolio link. Vendoring also
+  makes the page auditable: everything it executes is in this repo.
 -->
 <style>
   :root { color-scheme: dark; }
@@ -148,9 +152,9 @@
 <script type="importmap">
 {
   "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/",
-    "@sparkjsdev/spark": "https://sparkjs.dev/releases/spark/2.1.0/spark.module.js"
+    "three": "./vendor/three.module.js",
+    "three/addons/": "./vendor/three-addons/",
+    "@sparkjsdev/spark": "./vendor/spark.module.js"
   }
 }
 </script>
