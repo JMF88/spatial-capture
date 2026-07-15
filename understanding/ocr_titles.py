@@ -71,13 +71,19 @@ import json
 import re
 import sys
 import time
-from difflib import SequenceMatcher
 from pathlib import Path
 from urllib.parse import urlencode
 
 import cv2
 import numpy as np
 import requests
+
+# Run as a script (python understanding/ocr_titles.py), so this dir isn't importable
+# as a package; matching.py sits beside this file. Kept torch/cv2-free on purpose so
+# the precision policy is unit-testable without the ML stack — same reason splits.py
+# is split out of the classifier's common.py.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from matching import is_queryable, match_score  # noqa: E402
 
 IMG_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"}
 USER_AGENT = "spatial-capture/1.0 (book-spine OCR demo; https://github.com/jmf88/spatial-capture)"
@@ -176,21 +182,6 @@ def clean_query(text: str) -> str:
     toks = [w for w in t.split() if len(w) > 1 or w.isdigit()]
     return " ".join(toks).strip()
 
-
-def _norm(s: str) -> str:
-    return re.sub(r"[^0-9a-z]+", " ", (s or "").lower()).strip()
-
-
-def match_score(ocr_text: str, title: str) -> float:
-    """Fuzzy similarity in [0,1] between the OCR read and a candidate title.
-    Uses stdlib difflib (no extra dep); also credits a full substring hit."""
-    a, b = _norm(ocr_text), _norm(title)
-    if not a or not b:
-        return 0.0
-    ratio = SequenceMatcher(None, a, b).ratio()
-    if b in a or a in b:
-        ratio = max(ratio, 0.9)
-    return round(ratio, 3)
 
 
 class Lookup:
@@ -455,11 +446,13 @@ def main() -> int:
         if text and conf >= args.min_conf:
             q = clean_query(text)
             rec["query"] = q
-            if q:
+            if q and is_queryable(q):
                 m = lookup.best(q, args.provider, args.min_match)
                 rec["match"] = m
                 if m:
                     matched += 1
+            elif q:
+                rec["skipped"] = "too little alphabetic signal to look up"
         m = rec["match"]
         tag = (f"-> {m['title']} ({m['provider']} {m['score']})" if m
                else "-> (no confident match)")
