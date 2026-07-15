@@ -176,8 +176,63 @@ main {
   background: radial-gradient(circle at 40% 35%, #fff, var(--glow) 45%, var(--glow-dim));
   box-shadow: 0 0 24px 2px color-mix(in srgb, var(--glow) 45%, transparent);
 }
-.record .hint { font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; color: var(--faint); }
-video#cam { width: 100%; border-radius: var(--r-md); border: 1px solid var(--line); display: none; background: #000; }
+.record .hint {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; color: var(--faint);
+  text-align: center; line-height: 1.5; max-width: 30ch;
+}
+.record .hint code {
+  color: var(--muted); background: var(--surface);
+  border: 1px solid var(--line-soft); border-radius: 5px; padding: 1px 5px;
+}
+/* import unavailable (served over HTTPS from Pages -> can't reach a LAN server) */
+.record .ring.off { cursor: default; border-color: var(--line); background: none; }
+.record .ring.off::before { animation: none; }
+.record .ring.off .core { background: var(--raised); box-shadow: none; }
+.record .ring.busy::before { animation-duration: .9s; }
+
+/* upload progress */
+.bar {
+  width: 100%; max-width: 260px; height: 4px; border-radius: 999px;
+  background: var(--line-soft); overflow: hidden;
+}
+.bar .fill {
+  display: block; height: 100%; width: 0%; border-radius: 999px;
+  background: linear-gradient(90deg, var(--glow-dim), var(--glow));
+  transition: width .18s linear;
+}
+.bar.done .fill { background: var(--ok); }
+.bar.failed .fill { background: var(--bad); }
+
+/* numbered steps under the checklist */
+.step { margin: 22px 0 0; }
+.step-h {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 13px; font-weight: 700; letter-spacing: .01em; margin-bottom: 7px;
+}
+.step-h .n {
+  flex: none; width: 19px; height: 19px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  color: var(--ground); background: var(--glow);
+}
+.step-p { margin: 0 0 12px 28px; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+.step-p b { color: var(--ink); font-weight: 600; }
+
+/* scene name field */
+.field {
+  display: flex; align-items: center; gap: 10px; margin: 2px 0 0;
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--surface);
+}
+.field span {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--faint);
+}
+.field input {
+  flex: 1; min-width: 0; border: 0; outline: 0; background: none;
+  color: var(--ink); font-family: var(--mono); font-size: 13px;
+}
+.field[hidden] { display: none; }
 
 .checklist { display: flex; flex-direction: column; gap: 2px; }
 .check {
@@ -240,6 +295,7 @@ video#cam { width: 100%; border-radius: var(--r-md); border: 1px solid var(--lin
 .tabbar button.on svg { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--glow) 55%, transparent)); }
 
 .empty { color: var(--faint); font-family: var(--mono); font-size: 12px; text-align: center; padding: 40px 0; }
+.grid .empty { grid-column: 1 / -1; }   /* empty state spans both columns */
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

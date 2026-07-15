@@ -30,9 +30,17 @@ mobileclip*.ts
 # docs/viewer/assets/ IS tracked, so do NOT ignore *.ply / *.splat globally.
 
 # Never commit internal strategy/state notes or throwaway sample splats into this
-# public repo (defensive — these belong in the private project, not here)
+# public repo (defensive — these belong in the private project, not here).
+#
+# _private/ holds the working build docs (runbook, plan, state) that need to sit
+# beside the code but must never ship. Strategy/OSINT/personal notes do NOT live
+# here at all — they stay in C:\Dev\myriad.
+# WARNING: never run `git clean -x` in this repo — it would delete _private/.
+_private/
 MEETING_PREP*.md
 SPATIAL_CAPTURE_STATE.md
+SPATIAL_CAPTURE_PLAN.md
+CAPTURE_TESTING_RUNBOOK.md
 *_STATE.md
 **/_sample.*
 

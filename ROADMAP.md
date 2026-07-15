@@ -8,6 +8,7 @@ and where it heads. It doubles as the honest scope statement for the repo.
 
 | Stage | State |
 |---|---|
+| LAN import (`pipeline/00`) | **done, tested** — streams phone → `data/`; upload, type-reject and traversal-containment verified |
 | Frame extraction (`pipeline/01`) | **done, validated** on synthetic video |
 | Classifier train/eval/infer (`understanding/classify`) | **done, validated** end-to-end on the real torch/timm stack |
 | Open-vocab detector (`understanding/detect.py`) | **done**; verified API; smoke-tested on a sample image |
@@ -20,7 +21,7 @@ and where it heads. It doubles as the honest scope statement for the repo.
 | Orchestrator + eval gate (`pipeline/run.py`, `gate.py`) | **done, tested** — config-driven, threshold-gated |
 | Test suite + CI (`tests/`, `.github`) | **done, green** — 20 tests, ruff |
 | Classifier → ONNX (`export_onnx.py`) | **done** — torch↔onnx parity verified (browser-ready) |
-| Capture app (`docs/app`) | **done, verified headless** — Trove: guided capture coach + collection + object catalog (installable PWA) |
+| Capture app (`docs/app`) | **done, verified headless** — Trove: capture coach + WiFi import + collection + object catalog (installable PWA). Not a camera, by platform necessity — see README. |
 | Docs (README / ARCHITECTURE / ROADMAP / CAPTURE_GUIDE) | authored |
 
 _(Kept current as milestones land.)_

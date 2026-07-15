@@ -48,15 +48,30 @@
         <button data-mode="object" class="on">Object</button>
         <button data-mode="enclosure">Enclosure</button>
       </div>
-      <div class="record">
-        <div class="ring" id="record" role="button" tabindex="0" aria-label="Start capture">
-          <span class="core"></span>
-        </div>
-        <div class="hint" id="record-hint">tap to start · records to your phone</div>
-      </div>
-      <video id="cam" playsinline muted></video>
       <div class="eyebrow" style="margin:4px 2px 8px">pre-flight — tap each as you go</div>
       <div class="checklist" id="checklist"></div>
+
+      <div class="step">
+        <div class="step-h"><span class="n">1</span>Shoot it in your camera app</div>
+        <p class="step-p" id="shoot-copy"></p>
+      </div>
+
+      <div class="step">
+        <div class="step-h"><span class="n">2</span>Send it to the workstation</div>
+        <p class="step-p" id="import-copy"></p>
+        <div class="record">
+          <div class="ring" id="record" role="button" tabindex="0" aria-label="Choose a capture to import">
+            <span class="core"></span>
+          </div>
+          <div class="hint" id="record-hint">tap to pick your capture</div>
+          <div class="bar" id="bar" hidden><span class="fill" id="bar-fill"></span></div>
+        </div>
+        <label class="field" id="scene-field">
+          <span>scene</span>
+          <input id="scene" value="shelf" inputmode="text" autocapitalize="none" autocorrect="off" spellcheck="false">
+        </label>
+        <input type="file" id="file" accept="video/*" hidden>
+      </div>
     </section>
 
     <!-- OBJECTS -->

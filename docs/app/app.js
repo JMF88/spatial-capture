@@ -1,41 +1,20 @@
 // Trove -- capture-and-collect companion to spatial-capture. Vanilla, self-contained.
 
-// Embedded fallback so the app works even opened from file:// ; the real data
-// source is assets/collection.json (populated as you capture + fuse scenes).
-const DEMO = {
-  scenes: [
-    { id: "office", name: "Home Office", mode: "enclosure", captured: "2026-07-12", hue: 40,
-      splat: "../viewer/assets/scene.spz", scene: "../viewer/assets/scene.json",
-      stats: { gaussians: 1180000, objects: 14, frames: 212 } },
-    { id: "bookshelf", name: "Office Bookshelf", mode: "object", captured: "2026-07-12", hue: 150,
-      splat: "../viewer/assets/bookshelf.spz", scene: "../viewer/assets/bookshelf.json",
-      stats: { gaussians: 640000, objects: 22, frames: 96 } },
-    { id: "garage", name: "Garage Bench", mode: "object", captured: "2026-07-10", hue: 205,
-      splat: null, scene: null,
-      stats: { gaussians: 820000, objects: 9, frames: 140 } },
-  ],
-  finds: [
-    { label: "The Pragmatic Programmer", category: "book", scene: "Office Bookshelf", confidence: 0.91 },
-    { label: "Designing Data-Intensive Apps", category: "book", scene: "Office Bookshelf", confidence: 0.88 },
-    { label: "Clean Code", category: "book", scene: "Office Bookshelf", confidence: 0.86 },
-    { label: "potted plant", category: "plant", scene: "Home Office", confidence: 0.79 },
-    { label: "desk lamp", category: "lamp", scene: "Home Office", confidence: 0.84 },
-    { label: "monitor", category: "monitor", scene: "Home Office", confidence: 0.93 },
-    { label: "mechanical keyboard", category: "keyboard", scene: "Home Office", confidence: 0.77 },
-    { label: "coffee mug", category: "mug", scene: "Home Office", confidence: 0.68 },
-    { label: "office chair", category: "chair", scene: "Home Office", confidence: 0.90 },
-    { label: "cordless drill", category: "tool", scene: "Garage Bench", confidence: 0.81 },
-    { label: "socket set", category: "tool", scene: "Garage Bench", confidence: 0.72 },
-    { label: "bench vise", category: "tool", scene: "Garage Bench", confidence: 0.74 },
-  ],
-};
+// Real captures only. assets/collection.json is the source of truth and the
+// pipeline writes it as scenes are captured and fused. There is deliberately no
+// sample data: a catalog of scenes that don't exist would misrepresent the work,
+// and an empty shelf is a more honest first impression than a staged one.
+const EMPTY = { scenes: [], finds: [] };
 
 async function loadData() {
   try {
     const r = await fetch("assets/collection.json", { cache: "no-cache" });
-    if (r.ok) return await r.json();
-  } catch (_) { /* fall through to embedded demo */ }
-  return DEMO;
+    if (r.ok) {
+      const d = await r.json();
+      return { scenes: d.scenes ?? [], finds: d.finds ?? [] };
+    }
+  } catch (_) { /* offline, or opened from file:// -- show the empty state */ }
+  return EMPTY;
 }
 
 // ---- seeded RNG so each scene's cover art is stable ----
@@ -106,9 +85,14 @@ const fmtCount = (n) => n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e3 ? Math.
 const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 function renderScenes(data) {
+  const n = data.scenes.length;
   const grid = document.getElementById("scene-grid");
-  document.getElementById("scene-count").textContent = data.scenes.length + " scenes";
+  document.getElementById("scene-count").textContent = n === 1 ? "1 scene" : n + " scenes";
   grid.innerHTML = "";
+  if (!n) {
+    grid.innerHTML = `<div class="empty">nothing captured yet — start on the Capture tab</div>`;
+    return;
+  }
   for (const s of data.scenes) {
     const card = document.createElement("button");
     card.className = "specimen";
@@ -197,28 +181,127 @@ function renderChecklist() {
   });
 }
 
+// ---- shoot + import ----
+// Being straight about the platform instead of faking it: a web page cannot open
+// the iOS Camera app or drive its controls, and iOS Safari does not expose the
+// MediaStreamTrack constraints (exposureMode / focusMode / whiteBalanceMode) that
+// would let it lock a look the way photogrammetry needs. Recording in-page via
+// MediaRecorder is possible but strictly worse than the native camera. So Trove
+// does not pretend to be a camera: it coaches the shot, you take it in the app
+// that actually has the controls, and Trove carries the file to the workstation.
+const SHOOT = {
+  object:
+    "Record in your phone's <b>camera app</b> — it has the exposure and focus lock this page can't reach. " +
+    "Frame the object, <b>long-press until AE/AF LOCK appears</b>, then keep that one look for the whole take. " +
+    "Orbit it in three passes — low, eye, high. Move your feet; never turn the object.",
+  enclosure:
+    "Record in your phone's <b>camera app</b>. Point at a mid-bright wall and <b>long-press for AE/AF LOCK</b> " +
+    "before you start — an exposure that drifts as you pan is the fastest route to a soft reconstruction. " +
+    "Then <b>walk</b> the room in loops; standing and spinning gives the solver no parallax. Finish where you began.",
+};
+
+// Stock iOS AE/AF Lock holds exposure and focus but not white balance. For a room
+// -- where you sweep past a window, a lamp and a wall in one take -- that drift is
+// worth removing: Blackmagic Camera is free and locks WB, shutter and ISO outright.
+const SHOOT_COMMON =
+  "<br><br>Set <b>Settings → Camera → Record Video → 4K/30</b> — not 60, which spreads the same bitrate " +
+  "over twice the frames. Wipe the lens, HDR and filters off, stay on the <b>1× lens</b>, and give the room " +
+  "all the light you have. Stock AE/AF Lock won't hold <b>white balance</b>; <b>Blackmagic Camera</b> (free) will, " +
+  "along with shutter and ISO — worth the install for the enclosure take.";
+
+// The GitHub Pages copy is HTTPS, and a secure page may not POST to a plain-HTTP
+// LAN address (mixed content). So import only works when Trove is served by the
+// workstation itself -- which is exactly what pipeline/00_import_server.py does.
+const canImport = location.protocol === "http:";
+
+function renderShootCopy() {
+  document.getElementById("shoot-copy").innerHTML = SHOOT[mode] + SHOOT_COMMON;
+}
+
 function initCapture() {
   document.querySelectorAll("#mode-seg button").forEach(b => {
     b.onclick = () => {
       document.querySelectorAll("#mode-seg button").forEach(x => x.classList.remove("on"));
-      b.classList.add("on"); mode = b.dataset.mode; renderChecklist();
+      b.classList.add("on"); mode = b.dataset.mode; renderChecklist(); renderShootCopy();
     };
   });
-  const start = async () => {
-    const hint = document.getElementById("record-hint");
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-      const v = document.getElementById("cam");
-      v.srcObject = stream; v.style.display = "block"; v.play();
-      hint.textContent = "recording — walk your capture, then feed the video to the pipeline";
-    } catch (_) {
-      hint.textContent = "camera unavailable here — open Trove on your phone to capture";
+  renderChecklist();
+  renderShootCopy();
+  initImport();
+}
+
+function initImport() {
+  const ring = document.getElementById("record");
+  const hint = document.getElementById("record-hint");
+  const copy = document.getElementById("import-copy");
+  const file = document.getElementById("file");
+
+  if (!canImport) {
+    copy.innerHTML =
+      "Trove is running from the public web here, so it can't reach your machine. To import, run " +
+      "<code>python pipeline/00_import_server.py</code> on the workstation and open the " +
+      "<code>http://…:8099/app/</code> URL it prints, on the same WiFi.";
+    ring.classList.add("off");
+    ring.removeAttribute("tabindex");
+    ring.setAttribute("aria-disabled", "true");
+    hint.textContent = "import needs the workstation's own URL";
+    document.getElementById("scene-field").hidden = true;
+    return;
+  }
+
+  copy.innerHTML =
+    "Lands straight in <code>data/&lt;scene&gt;/</code> on the workstation over WiFi — no cable, no cloud, no re-encode.";
+  const pick = () => file.click();
+  ring.onclick = pick;
+  ring.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } };
+  file.onchange = () => {
+    const f = file.files && file.files[0];
+    if (f) upload(f);
+    file.value = "";   // so re-picking the same file fires change again
+  };
+}
+
+function upload(f) {
+  const ring = document.getElementById("record");
+  const hint = document.getElementById("record-hint");
+  const bar = document.getElementById("bar");
+  const fill = document.getElementById("bar-fill");
+  const scene = (document.getElementById("scene").value || "").trim() || "shelf";
+  const mb = f.size / 1048576;
+
+  bar.hidden = false;
+  bar.classList.remove("done", "failed");
+  fill.style.width = "0%";
+  ring.classList.add("busy");
+  hint.textContent = `sending ${mb.toFixed(0)} MB — keep the screen on`;
+
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", `/api/upload?scene=${encodeURIComponent(scene)}&name=${encodeURIComponent(f.name)}`);
+  xhr.upload.onprogress = (e) => {
+    if (!e.lengthComputable) return;
+    fill.style.width = (100 * e.loaded / e.total).toFixed(1) + "%";
+    hint.textContent = `sending ${(e.loaded / 1048576).toFixed(0)} / ${mb.toFixed(0)} MB`;
+  };
+  xhr.onload = () => {
+    ring.classList.remove("busy");
+    let res = {};
+    try { res = JSON.parse(xhr.responseText); } catch (_) { /* non-JSON error body */ }
+    if (xhr.status === 200 && res.ok) {
+      fill.style.width = "100%";
+      bar.classList.add("done");
+      hint.innerHTML = `landed in <code>data/${esc(scene)}/</code> — extract frames next`;
+      toast(`${f.name} → data/${scene}/`);
+    } else {
+      bar.classList.add("failed");
+      hint.textContent = res.error || `upload failed (${xhr.status})`;
     }
   };
-  const rec = document.getElementById("record");
-  rec.onclick = start;
-  rec.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); start(); } };
-  renderChecklist();
+  xhr.onerror = () => {
+    ring.classList.remove("busy");
+    bar.classList.add("failed");
+    hint.textContent = "couldn't reach the workstation — same WiFi?";
+  };
+  xhr.send(f);
 }
 
 function initTabs() {

@@ -2,7 +2,7 @@
 
 Capture a real enclosed space with a phone, reconstruct it as a **browser-viewable 3D Gaussian splat**, **understand what's in it**, and **ask it questions**. A reproducible, Windows-native pipeline that runs on a single consumer GPU.
 
-> **Status:** the full system is built and tested — reconstruction, understanding, semantic fusion, a queryable viewer, an orchestrator + eval gate, a test suite/CI, and a mobile capture app. The first real capture is in progress; the live demo link goes up when it's trained. Built and tested on Windows 11 with an RTX 4070 Laptop (8 GB VRAM).
+> **Status:** the pipeline is built and tested end to end — reconstruction, understanding, semantic fusion, a queryable viewer, an orchestrator + eval gate, a test suite/CI, and a mobile capture app. Every stage has been exercised on synthetic or sample data; **the first real capture hasn't been shot yet**, so there's no demo link and the collection ships empty. Nothing in this repo is illustrative — when a scene appears, it's a real one. Built and tested on Windows 11 with an RTX 4070 Laptop (8 GB VRAM).
 
 **Live demo:** _(coming — a GitHub Pages URL you open on any phone or laptop and orbit around)_
 
@@ -49,6 +49,7 @@ Together: capture → reconstruct → detect → classify → read → fuse → 
 
 | Stage | Tool (default) | Open/reproducible lane | License |
 |---|---|---|---|
+| **LAN import (phone → workstation)** | `pipeline/00_import_server.py` | — | MIT |
 | Frame extraction | ffmpeg + `pipeline/01_extract_frames.py` | — | LGPL / MIT (this code) |
 | Camera poses (SfM) | Jawset Postshot | VGGT transformer → COLMAP format | Postshot EULA / Apache-2.0 |
 | Splat training | Jawset Postshot (3DGS) | gsplat | Postshot EULA / **Apache-2.0** |
@@ -105,7 +106,15 @@ python understanding/query.py docs/viewer/assets/scene.json "book"
 
 ## The capture app
 
-[`docs/app`](docs/app) is **Trove**, an installable mobile PWA and the front door to the whole thing: a guided capture coach (Object vs. Enclosure) that makes a capture actually reconstructable, a **Collection** of your captured scenes, and an **Objects** catalog of everything found across them. Scene cards open the live viewer.
+[`docs/app`](docs/app) is **Trove**, an installable mobile PWA and the front door to the whole thing: a guided capture coach (Object vs. Enclosure) that makes a capture actually reconstructable, a one-tap **import** that sends the video to the workstation over WiFi, a **Collection** of your captured scenes, and an **Objects** catalog of everything found across them. Scene cards open the live viewer.
+
+**Trove is deliberately not a camera.** On iOS a web page can't open the Camera app or lock a look for it — WebKit exposes only `whiteBalanceMode`, `zoom` and `torch` to web code, while `exposureMode`, `focusMode` and `iso` are unimplemented. Recording in-page via `MediaRecorder` works but runs exposure/focus/white-balance in continuous auto, which is precisely the pumping and hunting that wrecks feature matching. So Trove coaches the shot, you take it in an app that has real manual control, and Trove carries the file to the GPU:
+
+```bash
+python pipeline/00_import_server.py     # prints a LAN URL; open it on your phone
+```
+
+The GitHub Pages copy can't import — a secure page may not POST to a plain-HTTP LAN address — so the app detects that and says so instead of failing quietly.
 
 ## Quality
 
