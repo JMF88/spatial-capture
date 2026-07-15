@@ -12,7 +12,8 @@ and where it heads. It doubles as the honest scope statement for the repo.
 | Frame extraction (`pipeline/01`) | **done, validated** on synthetic video |
 | Classifier train/eval/infer (`understanding/classify`) | **done, validated** end-to-end on the real torch/timm stack |
 | Open-vocab detector (`understanding/detect.py`) | **done**; verified API; smoke-tested on a sample image |
-| OCR + book lookup (`understanding/ocr_titles.py`) | implemented; not yet run on real crops |
+| OCR + book lookup (`understanding/ocr_titles.py`) | **run on real crops** — reads spines legibly; resolves **0/32** to a book. Lookup is exact on clean text (1.000), but noisy reads off a gate-rejected capture retrieve nothing. Unproven at shelf scale until a capture the gate accepts. See ARCHITECTURE §8. |
+| Spine→title match policy (`understanding/matching.py`) | **done, tested** — coverage-scaled containment; killed a real false positive (0.900 → 0.256) with recall intact |
 | Splat — Postshot lane | doc'd; ready to run on your capture |
 | Splat — open lane (VGGT→gsplat) | scripted + documented; CUDA build, run after the demo is safe |
 | Queryable web viewer (`docs/viewer`) | **done, verified headless** — orbit + measure + search→3D highlight |
@@ -44,11 +45,11 @@ _(Kept current as milestones land.)_
 
 | Push | How far it got | Notes |
 |---|---|---|
-| Bookshelf capture | | |
-| Office enclosure | | |
-| Classifier on real books | | |
-| OCR titles | | |
-| VGGT→gsplat open lane | | |
+| Bookshelf capture | **rejected by the gate** | Two 4K takes, handheld. Framing and pacing were fine — 92-94% frame overlap, only 4-11% soft frames. Killed by the camera, not the operator: auto-exposure re-metered continuously while panning between a window and dark shelves, swinging scene brightness **92% and 106%**, with white balance drifting 18-23% alongside. `rate_capture.py` returned RESHOOT before any GPU time was spent. Reshoot needs locked exposure/WB/focus, which stock iOS will not give you (AE/AF Lock holds exposure and focus but not white balance). |
+| Office enclosure | not started | |
+| Classifier on real books | not started | needs a capture the gate accepts |
+| OCR titles | **run, honest result** | 38 book detections → 32 spine reads, human-legible, **0 resolved**. Isolated the chain: lookup is exact on clean text, retrieval is the wall on noisy reads. Fixed a false-positive bug it exposed (see ARCHITECTURE §8). Rerun on the reshoot: if clean frames still don't resolve, the OCR stage is the problem, not the capture. |
+| VGGT→gsplat open lane | blocked | this machine has no CUDA toolkit, no MSVC and no COLMAP, so gsplat cannot compile — the open lane needs a toolchain install, not just a GPU |
 
 ## Horizon
 

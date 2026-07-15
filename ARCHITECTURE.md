@@ -160,13 +160,33 @@ about which is which signals you actually understand the field.
 ### 8. OCR + lookup — `understanding/ocr_titles.py` (feature B)
 - **What:** read book-spine text (usually vertical/rotated) with OCR, then match the
   title to metadata via a free API (Open Library / Google Books).
-- **Why this way:** turns "there's a book here" into "*which* book" — a legible,
-  delightful capstone. It's mostly pipeline/integration, so it garnishes the trained
-  classifier rather than replacing it.
+- **Why this way:** aims to turn "there's a book here" into "*which* book". It's mostly
+  pipeline/integration, so it garnishes the trained classifier rather than replacing it.
+- **Honest status — measured, not assumed.** Run against a real shelf (8 frames, 38 book
+  detections): OCR produced 32 reads that a human recognises instantly — `MASQUERADE Ea
+  DINNIMAN`, `THIS INEVIIABLE Dinmhan RUIN` — and the lookup resolved **none** of them.
+  The chain was isolated stage by stage: on *clean* text the lookup is exact (a correct
+  title scores 1.000; title+author 0.731), but the noisy reads retrieve no candidates at
+  all, because Open Library has no fuzzy search and `HBVTCHERS` is unrecoverable. The
+  frames came from a capture our own QA gate had already rejected for 92% exposure drift.
+  So the causal chain is: drifting auto-exposure → soft frames → OCR character errors →
+  zero retrieval → zero matches. Every downstream stage independently confirmed the gate.
+  **This stage is proven on clean input and unproven at shelf scale.** It is not claimed
+  to resolve titles until it does so on a capture the gate accepts.
 - **Failure modes:** rotated text (rotate the crop both ways, keep the higher-confidence
-  read), stylized fonts, glare. Lookup needs a decent title string.
+  read), stylized fonts, glare, and — dominant in practice — capture quality upstream.
+  Lookup needs a decent title string, and retrieval is the wall long before scoring is.
+- **Precision over recall, deliberately.** `understanding/matching.py` scores a read
+  against a candidate title, and credits containment only in proportion to coverage. A
+  flat containment credit once matched a spine reading `Jonan` to *"Jonan & evolusi
+  kereta api Indonesia"* — a book about Indonesian railways — because five letters sat
+  inside a thirty-four-letter title. A confident wrong answer is worse than none: one bad
+  match discredits every good one. Reads without enough alphabetic signal are never
+  queried. The policy is kept free of cv2/easyocr/torch so it is unit-testable against
+  the real reads, for the same reason `splits.py` sits apart from `common.py`.
 - **Scale:** confidence thresholds + human review for low-confidence reads; cache
-  lookups; batch API calls politely.
+  lookups; batch API calls politely; and a fuzzy retrieval tier (or a local title index)
+  if noisy reads must be resolved rather than rejected.
 
 ---
 
