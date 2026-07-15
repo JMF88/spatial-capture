@@ -19,6 +19,13 @@
 const MAGIC = "SCAP1";
 const HEADER_LEN = 5 + 4 + 16 + 12; // 37
 
+// The KDF cost is read from the file, and binding it as AAD only proves it wasn't
+// altered -- the proof arrives AFTER the derivation has already run. So the count is
+// attacker-controlled work: a 101-byte blob claiming 2^32-1 iterations wedges the tab
+// for hours before GCM ever gets to reject it. Bound it before deriving, not after.
+// 4M is ~7x the 600k default -- headroom to re-encrypt harder later, still ~seconds.
+const MAX_ITERS = 4_000_000;
+
 export function isEncrypted(buf) {
   if (!buf || buf.byteLength < HEADER_LEN) return false;
   const head = new Uint8Array(buf, 0, 5);
@@ -30,6 +37,12 @@ export async function decryptAsset(buf, passphrase) {
   const u8 = new Uint8Array(buf);
   const dv = new DataView(buf);
   const iterations = dv.getUint32(5, true);
+  if (iterations < 1 || iterations > MAX_ITERS) {
+    // .malformed marks "no passphrase can fix this" -- the caller must not re-prompt.
+    const e = new Error(`implausible PBKDF2 iteration count (${iterations})`);
+    e.malformed = true;
+    throw e;
+  }
   const salt = u8.slice(9, 25);
   const iv = u8.slice(25, 37);
   const aad = u8.slice(0, HEADER_LEN);

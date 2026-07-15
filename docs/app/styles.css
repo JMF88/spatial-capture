@@ -315,7 +315,12 @@ main {
 .tabbar button.on { color: var(--glow); }
 .tabbar button.on svg { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--glow) 55%, transparent)); }
 
-.empty { color: var(--faint); font-family: var(--mono); font-size: 12px; text-align: center; padding: 40px 0; }
+/* --faint is 3.9:1 on --ground: fine for meta that sits beside its subject, short
+   of AA for text that IS the subject. The empty state is the whole view today. */
+.empty {
+  color: var(--muted); font-family: var(--mono); font-size: 12px; line-height: 1.6;
+  text-align: center; padding: 44px 0; margin: 0 auto; max-width: 34ch; text-wrap: balance;
+}
 .grid .empty { grid-column: 1 / -1; }   /* empty state spans both columns */
 
 @media (prefers-reduced-motion: reduce) {

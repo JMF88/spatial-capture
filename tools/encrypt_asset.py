@@ -33,7 +33,8 @@ put the asset behind real auth (Cloudflare Access, a signed URL) instead.
 File format -- little-endian, no ambiguity:
 
     magic    5s   b"SCAP1"
-    kdf_iter u32  PBKDF2-HMAC-SHA256 iteration count
+    kdf_iter u32  PBKDF2-HMAC-SHA256 iteration count (readers bound it to MAX_ITERS
+                  before deriving -- see the comment there)
     salt     16s  PBKDF2 salt
     iv       12s  AES-GCM nonce
     body     ..   ciphertext || 16-byte GCM tag
@@ -62,6 +63,11 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 MAGIC = b"SCAP1"
 HEADER = struct.Struct("<5sI16s12s")   # magic, iterations, salt, iv
 DEFAULT_ITERS = 600_000                # OWASP 2023 floor for PBKDF2-HMAC-SHA256
+# Binding the header as AAD proves the iteration count wasn't altered, but the proof
+# only lands AFTER the derivation runs -- so on the reader's side the count is
+# attacker-controlled work. A blob claiming 2^32-1 burns hours before GCM rejects it.
+# Both readers bound it before deriving; must stay in lockstep with decrypt.js.
+MAX_ITERS = 4_000_000
 SALT_LEN, IV_LEN = 16, 12
 
 
@@ -88,6 +94,8 @@ def decrypt(blob: bytes, passphrase: str) -> bytes:
     magic, iters, salt, iv = HEADER.unpack(blob[:HEADER.size])
     if magic != MAGIC:
         raise ValueError("bad magic")
+    if not 1 <= iters <= MAX_ITERS:
+        raise ValueError(f"implausible PBKDF2 iteration count: {iters}")
     key = derive(passphrase, salt, iters)
     return AESGCM(key).decrypt(iv, blob[HEADER.size:], blob[:HEADER.size])
 
@@ -117,6 +125,10 @@ def main() -> int:
 
     if not args.path.is_file():
         print(f"error: {args.path} not found", file=sys.stderr)
+        return 2
+    # Refuse here rather than let someone author a blob the viewer will reject on sight.
+    if not 1 <= args.iterations <= MAX_ITERS:
+        print(f"error: --iterations must be 1..{MAX_ITERS:,}", file=sys.stderr)
         return 2
 
     data = args.path.read_bytes()

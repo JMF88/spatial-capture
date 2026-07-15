@@ -54,6 +54,27 @@ def test_header_is_authenticated(enc):
         enc.decrypt(bytes(blob), "right passphrase")
 
 
+def test_inflated_iteration_count_is_refused_before_deriving(enc):
+    """The mirror of test_header_is_authenticated, and the case GCM does NOT cover.
+
+    Authenticating the header proves the count wasn't altered -- but the proof only
+    arrives after the KDF has run. Rewriting 600k UP to 2^32-1 therefore costs the
+    reader hours of derivation before the tag can reject it: a 101-byte denial of
+    service. The bound has to be checked before deriving, so this must raise
+    ValueError (cheap, structural) and never InvalidTag (expensive, post-KDF).
+    """
+    blob = bytearray(enc.encrypt(b"secret room", "right passphrase", iters=1000))
+    struct.pack_into("<I", blob, 5, 0xFFFFFFFF)
+    with pytest.raises(ValueError, match="implausible"):
+        enc.decrypt(bytes(blob), "right passphrase")
+
+
+def test_encrypt_refuses_an_iteration_count_the_viewer_would_reject(enc):
+    """Writer and reader share one bound, so the tool cannot author an unopenable blob."""
+    with pytest.raises(ValueError, match="implausible"):
+        enc.decrypt(enc.encrypt(b"x", "phrase", iters=enc.MAX_ITERS + 1), "phrase")
+
+
 def test_header_layout_matches_the_js_reader(enc):
     """Pins the wire format that docs/viewer/decrypt.js parses by fixed offsets."""
     blob = enc.encrypt(b"x", "passphrase here", iters=600_000)

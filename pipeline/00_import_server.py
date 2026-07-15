@@ -24,9 +24,11 @@ Usage:
     # then, on the phone (same WiFi):  http://<your-lan-ip>:8099/app/
 
 Security: a deliberately small dev tool for a *trusted* network. It accepts writes
-from anyone who can reach the port, so it binds your LAN, not the internet. Don't
-run it on cafe/airport WiFi, and stop it when the import is done. Filenames are
-sanitised and confined to --data-root; nothing else is writable.
+from anyone who can reach the port, unauthenticated and with no size cap, and --host
+defaults to 0.0.0.0 -- every interface, not just the LAN one. What keeps it off the
+internet is your router, not this process. So don't run it on cafe/airport WiFi, and
+stop it when the import is done. Filenames are sanitised and confined to --data-root;
+nothing else is writable.
 
 Dependencies: stdlib only.
 """

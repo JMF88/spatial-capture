@@ -123,9 +123,18 @@ let activeCat = "all";
 function renderFinds(data) {
   const finds = data.finds || [];
   document.getElementById("find-count").textContent = finds.length + " found";
-  const cats = ["all", ...Array.from(new Set(finds.map(f => f.category)))];
   const fbar = document.getElementById("filters");
+  const wrap = document.getElementById("finds");
   fbar.innerHTML = "";
+  wrap.innerHTML = "";
+  // Nothing found at all is not a filter miss: "all" is a pseudo-category, so the
+  // per-category copy would read "no all yet" and the chip row would offer a single
+  // filter over an empty set. Say what is actually true instead.
+  if (!finds.length) {
+    wrap.innerHTML = `<div class="empty">no objects yet — the understanding branch catalogues them when a scene is fused</div>`;
+    return;
+  }
+  const cats = ["all", ...Array.from(new Set(finds.map(f => f.category)))];
   for (const cat of cats) {
     const b = document.createElement("button");
     b.className = "chip" + (cat === activeCat ? " on" : "");
@@ -133,9 +142,7 @@ function renderFinds(data) {
     b.onclick = () => { activeCat = cat; renderFinds(data); };
     fbar.appendChild(b);
   }
-  const wrap = document.getElementById("finds");
   const shown = finds.filter(f => activeCat === "all" || f.category === activeCat);
-  wrap.innerHTML = "";
   if (!shown.length) { wrap.innerHTML = `<div class="empty">no ${esc(activeCat)} yet</div>`; return; }
   for (const f of shown) {
     const h = hueFor(f.category);

@@ -4,44 +4,183 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>spatial-capture</title>
+<meta name="description" content="Walk a room with a phone; get back a 3D Gaussian splat you can orbit in a browser and a scene graph you can query. A reproducible Windows pipeline on one consumer GPU.">
+<!-- Inline data URI: the page makes zero external requests, and an absent favicon is a 404 on every load. Mark matches docs/app/icon.svg so the front door and Trove read as one thing. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cdefs%3E%3CradialGradient id='g' cx='46%25' cy='40%25' r='56%25'%3E%3Cstop offset='0' stop-color='%23ffffff'/%3E%3Cstop offset='42%25' stop-color='%23f7b955'/%3E%3Cstop offset='100%25' stop-color='%23b98a3f'/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect width='512' height='512' rx='112' fill='%230a0c10'/%3E%3Ccircle cx='256' cy='250' r='152' fill='url(%23g)'/%3E%3C/svg%3E" type="image/svg+xml">
+<meta name="theme-color" content="#0b0d10" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <style>
-  :root { color-scheme: dark light; }
+  /* Palette lives in custom properties so light mode is a real override, not a promise.
+     color-scheme below is only honest because both branches are actually styled. */
+  :root {
+    color-scheme: dark light;
+    --bg: #0b0d10;
+    --fg: #e6edf3;
+    --muted: #aab7c4;
+    --tag: #9fb0c0;
+    --dim: #7d8a97;
+    --card: #11151a;
+    --card-2: #0f1318;
+    --line: #222b35;
+    --chip: #1b222b;
+    --link: #6cb6ff;
+    --btn: #1f6feb;
+    --btn-fg: #ffffff;
+    --btn-2-bg: #161b22;
+    --btn-2-line: #30363d;
+    --accent: #f7b955;
+    --accent-line: #4a3a1c;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #ffffff;
+      --fg: #10141a;
+      --muted: #46525e;
+      --tag: #46525e;
+      --dim: #5c6874;
+      --card: #f7f9fb;
+      --card-2: #f2f5f8;
+      --line: #d9dfe6;
+      --chip: #eceff3;
+      --link: #0a58ca;
+      --btn: #0a58ca;
+      --btn-fg: #ffffff;
+      --btn-2-bg: #f2f5f8;
+      --btn-2-line: #c6cfd8;
+      --accent: #7a4d00;
+      --accent-line: #e3d3ae;
+    }
+  }
   * { box-sizing: border-box; }
   body { margin: 0; font: 16px/1.6 system-ui, -apple-system, sans-serif;
-    background: #0b0d10; color: #e6edf3; }
+    background: var(--bg); color: var(--fg); }
   .wrap { max-width: 760px; margin: 0 auto; padding: 56px 22px 80px; }
   h1 { font-size: 2.1rem; margin: 0 0 .2em; letter-spacing: -.01em; }
-  .tag { color: #9fb0c0; font-size: 1.15rem; margin: 0 0 1.6em; }
-  a { color: #6cb6ff; }
-  .cta { display: inline-block; background: #1f6feb; color: #fff; text-decoration: none;
-    padding: 11px 20px; border-radius: 9px; font-weight: 600; margin: 6px 0 4px; }
-  .cta.secondary { background: #161b22; border: 1px solid #30363d; color: #e6edf3; }
-  .note { color: #7d8a97; font-size: .9rem; margin-top: 8px; }
-  h2 { font-size: 1.15rem; margin: 2.2em 0 .6em; }
+  .tag { color: var(--tag); font-size: 1.15rem; margin: 0 0 1.2em; }
+  a { color: var(--link); }
+  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+  .cta { display: inline-block; background: var(--btn); color: var(--btn-fg); text-decoration: none;
+    padding: 11px 20px; border-radius: 9px; font-weight: 600; margin: 6px 8px 4px 0; }
+  .cta.secondary { background: var(--btn-2-bg); border: 1px solid var(--btn-2-line); color: var(--fg); }
+  /* Deliberately not fine print: this is the honesty statement, so it reads at
+     near-body size rather than in the grey a reader has learned to skip. */
+  .note { color: var(--muted); font-size: .95rem; margin-top: 14px; max-width: 64ch; }
+  .note strong { color: var(--fg); font-weight: 600; }
+
+  h2 { font-size: 1.15rem; margin: 2.4em 0 .6em; }
+  p { margin: 0 0 1em; }
+  .lede { color: var(--muted); }
+
   .branches { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 1em 0; }
-  .card { background: #11151a; border: 1px solid #222b35; border-radius: 12px; padding: 16px 18px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
   .card h3 { margin: 0 0 .3em; font-size: 1rem; }
-  .card p { margin: 0; color: #aab7c4; font-size: .92rem; }
-  ol.stages { color: #cdd9e5; padding-left: 1.2em; }
-  ol.stages code { background: #1b222b; padding: 1px 6px; border-radius: 5px; font-size: .85em; }
-  footer { margin-top: 3em; color: #6b7783; font-size: .85rem; border-top: 1px solid #222b35; padding-top: 1.4em; }
-  @media (max-width: 560px) { .branches { grid-template-columns: 1fr; } }
+  .card p { margin: 0; color: var(--muted); font-size: .92rem; }
+
+  /* Stage list: the path is the claim -- every line names the file that does the work. */
+  ol.stages { color: var(--fg); padding-left: 1.35em; margin: 1em 0; }
+  ol.stages li { margin: 0 0 .5em; }
+  ol.stages b { font-weight: 600; }
+  ol.stages span { color: var(--muted); }
+  ol.stages code { background: var(--chip); color: var(--muted); padding: 1px 6px;
+    border-radius: 5px; font-size: .82em; }
+
+  .gate { border: 1px solid var(--accent-line); background: var(--card-2);
+    border-radius: 12px; padding: 18px 20px; margin: 1.2em 0; }
+  .gate table { border-collapse: collapse; width: 100%; font-size: .88rem; margin: 0; }
+  .gate th { text-align: left; font-weight: 600; color: var(--dim); font-size: .78rem;
+    text-transform: uppercase; letter-spacing: .04em; padding: 0 12px .5em 0;
+    border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .gate td { padding: .55em 12px .55em 0; border-bottom: 1px solid var(--line); color: var(--muted); }
+  .gate tr:last-child td { border-bottom: 0; }
+  .gate td.n { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--fg); }
+  .verdict { color: var(--accent); font-weight: 600; font-size: .82rem; letter-spacing: .03em; }
+  .gate .why { margin: .9em 0 0; font-size: .88rem; color: var(--muted); }
+  .gate .why:last-child { margin-bottom: 0; }
+  .scroll { overflow-x: auto; }
+
+  footer { margin-top: 3.4em; color: var(--dim); font-size: .85rem;
+    border-top: 1px solid var(--line); padding-top: 1.4em; }
+
+  @media (max-width: 560px) {
+    .wrap { padding: 40px 18px 64px; }
+    h1 { font-size: 1.8rem; }
+    .tag { font-size: 1.05rem; }
+    .branches { grid-template-columns: 1fr; }
+    .cta { display: block; margin-right: 0; text-align: center; }
+    .gate { padding: 16px; }
+    /* Five columns will not fit a phone: side-scrolling a five-cell table reads as
+       broken, so each take becomes a labelled block instead. Two rows, so nothing is lost. */
+    .gate thead { display: none; }
+    .gate tr { display: block; padding: .7em 0; border-bottom: 1px solid var(--line); }
+    .gate tr:last-child { border-bottom: 0; }
+    .gate td { display: flex; justify-content: space-between; align-items: baseline;
+      gap: 14px; padding: .2em 0; border-bottom: 0; }
+    .gate td::before { content: attr(data-label); color: var(--dim); font-size: .74rem;
+      font-family: system-ui, -apple-system, sans-serif; text-transform: uppercase;
+      letter-spacing: .04em; }
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>spatial-capture</h1>
-  <p class="tag">Capture a real enclosed space with a phone. Reconstruct it as a
-    browser-viewable 3D Gaussian splat, and understand what's in it.</p>
+  <p class="tag">Walk a room with a phone. Get back a 3D Gaussian splat you can orbit in a
+    browser &mdash; and a scene graph you can ask questions. One consumer GPU, no cloud.</p>
 
-  <a class="cta" href="./viewer/">Open the live viewer &rarr;</a>
-  <a class="cta secondary" href="./app/">Open Trove — the capture app &rarr;</a>
-  <div class="note">The viewer goes live once the first capture is trained. It renders an
-    interactive splat you can orbit on any laptop or phone.</div>
+  <a class="cta" href="https://github.com/jmf88/spatial-capture">Read the source &rarr;</a>
+  <a class="cta secondary" href="./app/">Open Trove &mdash; the capture app &rarr;</a>
+  <div class="note"><strong>No capture has been shot yet.</strong> The pipeline is built and
+    tested end to end on synthetic and sample data; no real scene has been through it. The
+    <a href="./viewer/">viewer</a> has no scene loaded and Trove lists zero scenes. Nothing
+    here is illustrative &mdash; when a scene appears, it's a real one.</div>
+
+  <h2>Why there's no scene yet</h2>
+  <p class="lede">Two real takes were shot. Both were refused before either reached the GPU.
+    Splat training costs 30&ndash;90 minutes on a laptop 4070, and it fails for reasons that
+    were already visible in the frames &mdash; so the frames get graded first.</p>
+
+  <div class="gate">
+    <div class="scroll">
+    <table>
+      <thead>
+        <tr><th>Take</th><th>Frames</th><th>Exposure drift</th><th>WB drift</th><th>Verdict</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="n" data-label="Take">1</td>
+          <td class="n" data-label="Frames">241</td>
+          <td class="n" data-label="Exposure drift">92%</td>
+          <td class="n" data-label="WB drift">18%</td>
+          <td data-label="Verdict"><span class="verdict">RESHOOT</span></td>
+        </tr>
+        <tr>
+          <td class="n" data-label="Take">2</td>
+          <td class="n" data-label="Frames">182</td>
+          <td class="n" data-label="Exposure drift">106%</td>
+          <td class="n" data-label="WB drift">23%</td>
+          <td data-label="Verdict"><span class="verdict">RESHOOT</span></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="why">Same two blockers each time: auto-exposure was never locked, and auto
+      white-balance was hunting. Stock iOS AE/AF Lock does not lock white balance &mdash; which
+      is exactly why that one is worth measuring. Drifting exposure and a wandering
+      white point are what wreck feature matching, and neither is fixable after the fact.</p>
+    <p class="why">The grader measures sharpness, exposure drift, white-balance drift, mains
+      flicker, frame-to-frame overlap and clipping, then returns GO / MARGINAL / RESHOOT with
+      the reasons named. It's advisory and says so: it can't see coverage holes or whether you
+      closed the loop, and its overlap metric saturates below 50%. Measure first, spend later.</p>
+    <p class="why">The grader is in the repo and under test
+      (<code>pipeline/rate_capture.py</code>). The two takes are not &mdash; <code>data/</code>
+      is gitignored, because they're multi-gigabyte video. Those numbers are measured results,
+      not something you can re-run from a clone.</p>
+  </div>
 
   <h2>Two branches, two kinds of AI</h2>
-  <p>One phone capture feeds two branches. The interesting part is that they are two
-    <em>different</em> kinds of machine learning:</p>
+  <p>One capture feeds two branches, and the interesting part is that they're two
+    <em>different</em> kinds of machine learning &mdash; then they get fused into one scene.</p>
   <div class="branches">
     <div class="card">
       <h3>Reconstruction &mdash; optimization</h3>
@@ -57,22 +196,69 @@
 
   <h2>The pipeline</h2>
   <ol class="stages">
-    <li>Phone video &rarr; sharp frames (<code>ffmpeg</code>)</li>
-    <li>Camera poses &mdash; structure-from-motion (Postshot, or a VGGT transformer)</li>
-    <li>Gaussian-splat training (Postshot, or gsplat)</li>
-    <li>Compress &amp; host &mdash; a static URL on GitHub Pages</li>
-    <li>Understanding &mdash; detect &rarr; classify &rarr; read</li>
+    <li><b>Import</b> <span>&mdash; the video comes off the phone over WiFi, streamed straight
+      to disk. No cable, no cloud round-trip. It ffprobes whatever lands and warns when iOS has
+      silently re-encoded it &mdash; a 4K60 HEVC take arrived here as 4K30 H.264: half the
+      frames gone before reconstruction started.</span> <code>pipeline/00_import_server.py</code></li>
+    <li><b>Frames</b> <span>&mdash; sharp, well-overlapped stills.</span>
+      <code>pipeline/01_extract_frames.py</code></li>
+    <li><b>Capture QA</b> <span>&mdash; grade the take. GO / MARGINAL / RESHOOT, before the
+      GPU time.</span> <code>pipeline/rate_capture.py</code></li>
+    <li><b>Poses</b> <span>&mdash; structure-from-motion: where was the camera? Postshot, or an
+      open VGGT lane.</span> <code>pipeline/02_poses_vggt.py</code></li>
+    <li><b>Splat</b> <span>&mdash; fit the Gaussians. Postshot 3DGS, or gsplat (Apache-2.0 on
+      purpose &mdash; the INRIA reference is non-commercial).</span>
+      <code>pipeline/03_train_gsplat.py</code></li>
+    <li><b>Detect, classify, read</b> <span>&mdash; open-vocab detector, a classifier trained
+      here, OCR.</span> <code>understanding/</code></li>
+    <li><b>Fuse</b> <span>&mdash; camera poses lift the 2D detections into the splat's 3D frame.
+      Pixels-with-labels become a scene graph.</span>
+      <code>understanding/fusion/build_scene.py</code></li>
+    <li><b>Query</b> <span>&mdash; type &ldquo;book&rdquo; and it lights up in 3D; or
+      <code>--json</code> for an agent.</span> <code>understanding/query.py</code></li>
   </ol>
+  <p class="lede">An orchestrator runs the automatable stages from one YAML config and skips
+    what's already built (<code>pipeline/run.py</code>). An eval gate blocks publishing a scene
+    whose reconstruction, classifier or OCR metrics miss threshold
+    (<code>pipeline/gate.py</code>) &mdash; the same measure-first rule, at the other end.
+    Unit tests cover the pure logic; <code>ruff</code> lints; both run on every push.</p>
+
+  <h2>Public code, private room</h2>
+  <p class="lede">GitHub Pages has no access control &mdash; a public repo serves public files,
+    full stop. But the thing worth showing is a scan of a real, personal space. So the boundary
+    goes in the file rather than the host: the asset ships as AES-256-GCM ciphertext, and the
+    viewer decrypts it in the browser with a passphrase via WebCrypto. No server, no auth
+    provider, no third party. Whoever has the phrase sees the room; everyone else reads the
+    code, which stays entirely public.</p>
+  <p class="lede">The limits are the honest part. It isn't revocable &mdash; the ciphertext is
+    public and permanent, and forks outlive any later deletion. It's no stronger than the
+    passphrase, since an attacker has the blob and unlimited offline guesses; PBKDF2 makes each
+    guess expensive, not impossible. It keeps a private room out of search engines and gates it
+    behind something handed to one person. It is not a secrets manager.</p>
+
+  <h2>Trove</h2>
+  <p class="lede"><a href="./app/">Trove</a> is the capture app &mdash; an installable PWA:
+    a guided capture coach (object vs. enclosure), one-tap WiFi import to the workstation, a
+    collection of scenes, and a catalog of every object found across them.</p>
+  <p class="lede">It is deliberately <em>not</em> a camera. On iOS a web page can't open the
+    Camera app or lock a look for it: WebKit exposes only white balance, zoom and torch to web
+    code, while exposure, focus and ISO are unimplemented. Recording in-page runs all three in
+    continuous auto &mdash; which is precisely the drift the QA gate above caught. So Trove
+    coaches the shot, you take it in an app with real manual control, and Trove carries the
+    file to the GPU.</p>
 
   <h2>Why enclosures</h2>
   <p>Most real reality-capture jobs &mdash; training sims, workspace walkthroughs, digital
-    twins &mdash; are <em>enclosures</em>: you stand inside and the camera looks out. That
-    inside-out case is harder than orbiting an object, which is exactly why it's the valuable
-    one. This project proves it end to end.</p>
+    twins &mdash; are <em>enclosures</em>: you stand inside and the camera looks out. Divergent
+    views give the solver less overlap to lock onto, so inside-out is the harder case than
+    orbiting an object &mdash; which is exactly why it's the valuable one. That's the case this
+    pipeline is built for, and the one it hasn't proven yet.</p>
 
   <footer>
-    Source, architecture rationale, and reproduce steps in the
-    <a href="https://github.com/jmf88/spatial-capture">GitHub repo</a>.<br>
+    Architecture rationale, reproduce steps and scope in the
+    <a href="https://github.com/jmf88/spatial-capture">GitHub repo</a>.
+    Built and tested on Windows 11 with an RTX 4070 Laptop (8 GB VRAM); the VRAM budget shapes
+    real choices throughout.<br>
     Personal project. Not affiliated with, and containing no code or data from, any employer
     or client.
   </footer>

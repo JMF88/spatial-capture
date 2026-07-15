@@ -47,6 +47,7 @@
   #status { position: fixed; inset: 0; display: grid; place-items: center;
     pointer-events: none; z-index: 4; text-align: center; padding: 20px; white-space: pre-line; }
   #status.err { color: #ff7b72; }
+  #status.empty { color: #9fb0c0; max-width: 46ch; margin: 0 auto; line-height: 1.7; }
 
   /* passphrase gate: public code, private capture (see tools/encrypt_asset.py) */
   #gate { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center;
@@ -98,6 +99,13 @@
   .rrow .sc { color: #7d8590; font-variant-numeric: tabular-nums; }
   #rcount { color: #7d8590; padding: 2px 2px; min-height: 1em; }
   #hint { position: fixed; bottom: 10px; left: 10px; opacity: .6; z-index: 5; }
+
+  /* The HUD row needs ~284px. #panel is right-anchored at min(300px,46vw), so below
+     ~545px the two cross -- and #panel wins on z-index, swallowing taps on Objects.
+     A phone is the primary device here, so give the panel its own row instead. */
+  @media (max-width: 600px) {
+    #panel { top: 52px; left: 10px; right: 10px; width: auto; }
+  }
 </style>
 </head>
 <body>
@@ -147,6 +155,9 @@ import { decryptAsset, isEncrypted } from "./decrypt.js";
 
 const params = new URLSearchParams(location.search);
 const SRC = params.get("src") || "./assets/scene.ply"; // .ply/.splat/.spz/.sog/.ksplat
+// No ?src= means we are falling back to the default asset, which the repo ships without.
+// Its absence is the expected state, not a failure, and the two must not render alike.
+const SRC_IS_DEFAULT = !params.get("src");
 const SCENE_JSON = params.get("scene") || "./assets/scene.json";
 const statusEl = document.getElementById("status");
 const labelsEl = document.getElementById("labels");
@@ -216,6 +227,14 @@ function askPassphrase(message) {
   });
 }
 
+// Spark reports a missing asset as a fetch error carrying the status in its message
+// ("...: 404 File not found"); resolveSource throws "404 fetching ...". Neither exposes
+// a status field, so the string is the only signal available -- match it narrowly and
+// let anything unrecognised fall through to the loud error path.
+function isMissing(err) {
+  return /\b404\b/.test(String(err?.message ?? err));
+}
+
 async function resolveSource(src) {
   if (!/\.enc$/i.test(src)) return { url: src };
   const res = await fetch(src, { cache: "no-cache" });
@@ -231,8 +250,12 @@ async function resolveSource(src) {
     try {
       const plain = await decryptAsset(buf, phrase);
       return { fileBytes: new Uint8Array(plain), fileType: ext };
-    } catch (_) {
-      msg = "Wrong passphrase. Try again.";   // GCM authenticates, so this is certain
+    } catch (err) {
+      // A malformed blob (bad KDF cost) is not a passphrase problem: re-prompting
+      // would loop forever telling the user a lie. Only a GCM failure re-asks --
+      // GCM authenticates, so *that* verdict is certain.
+      if (err?.malformed) throw err;
+      msg = "Wrong passphrase. Try again.";
     }
   }
 }
@@ -255,9 +278,20 @@ async function resolveSource(src) {
     // The splat failing to load must NOT take down the object overlay -- they are
     // independent layers. Surface the error but keep the page interactive.
     statusEl.style.display = "grid";
-    statusEl.className = "err";
-    statusEl.textContent = "Failed to load " + SRC + "\n" + err;
-    console.error("[spatial-capture] load failed:", err);
+    // A missing default asset is this repo's shipped state -- no capture has been
+    // published yet -- so it gets stated plainly. Only a scene that was actually
+    // asked for (?src=) and did not arrive is an error worth colouring red.
+    if (SRC_IS_DEFAULT && isMissing(err)) {
+      statusEl.className = "empty";
+      statusEl.textContent =
+        "No scene loaded.\nThis viewer ships without one: no capture has been published yet.\n" +
+        "Point it at a splat with ?src=./assets/your-scene.spz";
+      console.info("[spatial-capture] no default asset present; viewer idle");
+    } else {
+      statusEl.className = "err";
+      statusEl.textContent = "Failed to load " + SRC + "\n" + err;
+      console.error("[spatial-capture] load failed:", err);
+    }
   }
 })();
 
