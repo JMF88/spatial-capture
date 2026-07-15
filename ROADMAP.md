@@ -16,7 +16,7 @@ and where it heads. It doubles as the honest scope statement for the repo.
 | Spine→title match policy (`understanding/matching.py`) | **done, tested** — coverage-scaled containment; killed a real false positive (0.900 → 0.256) with recall intact |
 | Splat — Postshot lane | doc'd; ready to run on your capture |
 | Splat — open lane (VGGT→gsplat) | scripted + documented; CUDA build, run after the demo is safe |
-| Queryable web viewer (`docs/viewer`) | **done, verified headless** — orbit + measure + search→3D highlight + passphrase gate |
+| Queryable web viewer (`docs/viewer`) | **done, verified headless** — orbit + measure + search→3D highlight + passphrase gate; **zero-CDN** (deps vendored, renders with every external host blocked) |
 | Metric calibration (`docs/viewer/scale.js`) | **done, tested** — one known length → real units scene-wide; shareable via `?scale=`; reports its own error |
 | Semantic fusion (`understanding/fusion`) | **done, tested** — lifts 2D detections into a 3D scene graph (scene.json) |
 | Query CLI (`understanding/query.py`) | **done, tested** — terminal + `--json` for an agent |

@@ -120,11 +120,27 @@ about which is which signals you actually understand the field.
   and static (nothing to break live). A specific trap is avoided: viewers that need
   `SharedArrayBuffer` require COOP/COEP response headers that **GitHub Pages cannot
   set** — so we pick a viewer that doesn't need them.
-- **The signature touch:** an in-viewer 2-point **measurement/annotation** overlay.
-  A civil engineer adding metric dimensions to a phone capture is unique-to-me and
-  points at the digital-twin roadmap.
-- **Scale:** for clients, wrap as an embeddable component, add compression tiers,
-  and a CDN. Delivery is a solved commodity — spend effort on capture/pose, not here.
+- **The signature touch:** a 2-point measurement overlay **that knows what its numbers
+  mean**. SfM recovers geometry up to an unknown scalar, so a splat measures in scene
+  units and photoreal capture gets written off as "not measurable". Measure one known
+  length — a tape measure in the shot, the surveyor's habit — and `docs/viewer/scale.js`
+  fixes the scalar for the whole scene; the calibration rides in `?scale=` so a shared
+  link stays calibrated. Uncalibrated readings say "scene units" rather than implying a
+  precision that isn't there, and the viewer reports its own error: accuracy is bounded
+  by the pick precision on the *reference*, so the same slop is 0.57% over a 24″ tape and
+  0.19% over a 72″ shelf — reach for the longest reference in the room. Dimensioned, not
+  survey-grade, and it says so.
+- **No runtime third-party dependency.** three + spark are vendored into
+  `docs/viewer/vendor/` at recorded hashes rather than pulled from a CDN. This was not
+  hygiene theatre: with the CDN blocked the page hung on `Loading...` indefinitely with
+  no JS error, because an unresolved importmap means the module script never runs and
+  nothing survives to report it. A portfolio link that dies when someone else's host has
+  a bad afternoon is not a link. Verified by hard-aborting every non-localhost request
+  and confirming it still renders.
+- **Scale:** for clients, wrap as an embeddable component, add compression tiers, and a
+  CDN for *assets*. Delivery is a solved commodity — spend effort on capture/pose, not
+  here. Note the asymmetry: a CDN for a big static asset is a cache miss, a CDN for the
+  code that renders it is a hard dependency.
 
 ### 6. Open-vocabulary detection — `understanding/detect.py`
 - **What:** query arbitrary class names in plain English ("book", "potted plant")
