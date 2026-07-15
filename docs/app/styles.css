@@ -190,18 +190,39 @@ main {
 .record .ring.off .core { background: var(--raised); box-shadow: none; }
 .record .ring.busy::before { animation-duration: .9s; }
 
-/* upload progress */
-.bar {
-  width: 100%; max-width: 260px; height: 4px; border-radius: 999px;
+/* upload queue — one row per file, all the waiting visible in one place */
+.queue { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.qrow {
+  display: grid; grid-template-columns: 1fr auto; gap: 4px 10px;
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--surface); align-items: center;
+}
+.qrow.on { border-color: color-mix(in srgb, var(--glow) 45%, var(--line)); }
+.qrow.ok { border-color: color-mix(in srgb, var(--ok) 40%, var(--line)); }
+.qrow.bad { border-color: color-mix(in srgb, var(--bad) 50%, var(--line)); }
+.qname {
+  font-size: 12.5px; font-weight: 600; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.qmeta {
+  font-family: var(--mono); font-size: 10px; color: var(--faint);
+  font-variant-numeric: tabular-nums; text-align: right;
+}
+.qbar {
+  grid-column: 1 / -1; height: 3px; border-radius: 999px;
   background: var(--line-soft); overflow: hidden;
 }
-.bar .fill {
+.qfill {
   display: block; height: 100%; width: 0%; border-radius: 999px;
   background: linear-gradient(90deg, var(--glow-dim), var(--glow));
   transition: width .18s linear;
 }
-.bar.done .fill { background: var(--ok); }
-.bar.failed .fill { background: var(--bad); }
+.qrow.ok .qfill { background: var(--ok); }
+.qrow.bad .qfill { background: var(--bad); }
+.qwarn {
+  grid-column: 1 / -1; font-size: 11px; line-height: 1.45;
+  color: var(--bad); border-top: 1px solid var(--line-soft); padding-top: 7px; margin-top: 2px;
+}
 
 /* numbered steps under the checklist */
 .step { margin: 22px 0 0; }

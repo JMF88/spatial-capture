@@ -200,14 +200,20 @@ const SHOOT = {
     "Then <b>walk</b> the room in loops; standing and spinning gives the solver no parallax. Finish where you began.",
 };
 
-// Stock iOS AE/AF Lock holds exposure and focus but not white balance. For a room
-// -- where you sweep past a window, a lamp and a wall in one take -- that drift is
-// worth removing: Blackmagic Camera is free and locks WB, shutter and ISO outright.
+// Stock iOS AE/AF Lock holds exposure and focus but not white balance, and it does not
+// stop the meter riding as you pan. Measured on a real take here: brightness swung 92%
+// across one capture with AE live. That is the whole ballgame -- worse than noise, worse
+// than resolution -- so the manual app is not a nicety.
+//
+// Frame rate is NOT shutter speed: fps only caps the slowest allowed exposure (1/30 at
+// 30fps). Since frames get decimated to ~3fps downstream, 60fps buys no usable frames --
+// it only doubles the file. What matters is the shutter, and light is what buys it.
 const SHOOT_COMMON =
-  "<br><br>Set <b>Settings → Camera → Record Video → 4K/30</b> — not 60, which spreads the same bitrate " +
-  "over twice the frames. Wipe the lens, HDR and filters off, stay on the <b>1× lens</b>, and give the room " +
-  "all the light you have. Stock AE/AF Lock won't hold <b>white balance</b>; <b>Blackmagic Camera</b> (free) will, " +
-  "along with shutter and ISO — worth the install for the enclosure take.";
+  "<br><br>Wipe the lens, HDR and filters off, stay on the <b>1× lens</b>, and give the room all the light " +
+  "you have — light is what buys you a fast shutter. Stock AE/AF Lock won't hold <b>white balance</b>, and " +
+  "won't stop the meter riding as you pan; <b>Blackmagic Camera</b> (free) locks shutter, ISO and WB outright. " +
+  "Worth the install for any take you care about. Shoot <b>4K/30 at 1/120s</b> there — 60fps just doubles the " +
+  "file, since only ~3 frames a second survive to the solver.";
 
 // The GitHub Pages copy is HTTPS, and a secure page may not POST to a plain-HTTP
 // LAN address (mixed content). So import only works when Trove is served by the
@@ -250,58 +256,105 @@ function initImport() {
   }
 
   copy.innerHTML =
-    "Lands straight in <code>data/&lt;scene&gt;/</code> on the workstation over WiFi — no cable, no cloud, no re-encode.";
+    "Videos land in <code>data/&lt;scene&gt;/</code>, photos in <code>photos/</code>. " +
+    "Pick as many as you like. <b>Shoot to Files, import from Files</b> — the iOS Photos picker " +
+    "hands out a re-encoded copy (a 4K60 HEVC take arrives as 4K30 H.264), so anything picked " +
+    "from the photo library is not the file you shot. Trove checks what actually arrived and says so.";
   const pick = () => file.click();
   ring.onclick = pick;
   ring.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } };
   file.onchange = () => {
-    const f = file.files && file.files[0];
-    if (f) upload(f);
-    file.value = "";   // so re-picking the same file fires change again
+    const picked = Array.from(file.files || []);
+    file.value = "";              // so re-picking the same file fires change again
+    if (picked.length) enqueue(picked);
   };
 }
 
-function upload(f) {
+// ---- upload queue ----
+// One file in flight at a time: phone WiFi uplink is the bottleneck, and parallel
+// uploads just make every row crawl and every ETA a lie. Sequential means the row
+// you're watching is the row that's moving.
+const q = [];
+let running = false;
+
+function enqueue(files) {
+  const wrap = document.getElementById("queue");
+  for (const f of files) {
+    const row = document.createElement("div");
+    row.className = "qrow";
+    row.innerHTML =
+      `<span class="qname">${esc(f.name)}</span>` +
+      `<span class="qmeta">${(f.size / 1048576).toFixed(0)} MB · queued</span>` +
+      `<span class="qbar"><span class="qfill"></span></span>`;
+    wrap.appendChild(row);
+    q.push({ file: f, row });
+  }
+  document.getElementById("record-hint").textContent =
+    `${q.length} queued — keep this screen open and awake`;
+  if (!running) pump();
+}
+
+function pump() {
   const ring = document.getElementById("record");
-  const hint = document.getElementById("record-hint");
-  const bar = document.getElementById("bar");
-  const fill = document.getElementById("bar-fill");
-  const scene = (document.getElementById("scene").value || "").trim() || "shelf";
-  const mb = f.size / 1048576;
-
-  bar.hidden = false;
-  bar.classList.remove("done", "failed");
-  fill.style.width = "0%";
+  const next = q.shift();
+  if (!next) {
+    running = false;
+    ring.classList.remove("busy");
+    document.getElementById("record-hint").textContent = "done — tap to add more";
+    return;
+  }
+  running = true;
   ring.classList.add("busy");
-  hint.textContent = `sending ${mb.toFixed(0)} MB — keep the screen on`;
+  send(next).finally(pump);
+}
 
-  const xhr = new XMLHttpRequest();
-  xhr.open("POST", `/api/upload?scene=${encodeURIComponent(scene)}&name=${encodeURIComponent(f.name)}`);
-  xhr.upload.onprogress = (e) => {
-    if (!e.lengthComputable) return;
-    fill.style.width = (100 * e.loaded / e.total).toFixed(1) + "%";
-    hint.textContent = `sending ${(e.loaded / 1048576).toFixed(0)} / ${mb.toFixed(0)} MB`;
-  };
-  xhr.onload = () => {
-    ring.classList.remove("busy");
-    let res = {};
-    try { res = JSON.parse(xhr.responseText); } catch (_) { /* non-JSON error body */ }
-    if (xhr.status === 200 && res.ok) {
-      fill.style.width = "100%";
-      bar.classList.add("done");
-      hint.innerHTML = `landed in <code>data/${esc(scene)}/</code> — extract frames next`;
-      toast(`${f.name} → data/${scene}/`);
-    } else {
-      bar.classList.add("failed");
-      hint.textContent = res.error || `upload failed (${xhr.status})`;
-    }
-  };
-  xhr.onerror = () => {
-    ring.classList.remove("busy");
-    bar.classList.add("failed");
-    hint.textContent = "couldn't reach the workstation — same WiFi?";
-  };
-  xhr.send(f);
+function send({ file: f, row }) {
+  return new Promise((resolve) => {
+    const scene = (document.getElementById("scene").value || "").trim() || "shelf";
+    const meta = row.querySelector(".qmeta");
+    const fill = row.querySelector(".qfill");
+    const mb = f.size / 1048576;
+    row.classList.add("on");
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `/api/upload?scene=${encodeURIComponent(scene)}&name=${encodeURIComponent(f.name)}`);
+    xhr.upload.onprogress = (e) => {
+      if (!e.lengthComputable) return;
+      fill.style.width = (100 * e.loaded / e.total).toFixed(1) + "%";
+      meta.textContent = `${(e.loaded / 1048576).toFixed(0)} / ${mb.toFixed(0)} MB`;
+    };
+    xhr.onload = () => {
+      let res = {};
+      try { res = JSON.parse(xhr.responseText); } catch (_) { /* non-JSON error body */ }
+      row.classList.remove("on");
+      if (xhr.status === 200 && res.ok) {
+        fill.style.width = "100%";
+        row.classList.add("ok");
+        const m = res.media || {};
+        meta.textContent = m.codec
+          ? `${m.codec} ${m.width}x${m.height} ${m.fps}fps ${m.mbps}Mbps · ${m.seconds}s`
+          : `${mb.toFixed(0)} MB · in ${res.kind === "photo" ? "photos/" : "data/" + scene}`;
+        if (m.warning) {
+          row.classList.add("warn");
+          const w = document.createElement("span");
+          w.className = "qwarn";
+          w.textContent = m.warning;
+          row.appendChild(w);
+        }
+      } else {
+        row.classList.add("bad");
+        meta.textContent = res.error || `failed (${xhr.status})`;
+      }
+      resolve();
+    };
+    xhr.onerror = () => {
+      row.classList.remove("on");
+      row.classList.add("bad");
+      meta.textContent = "couldn't reach the workstation — same WiFi?";
+      resolve();
+    };
+    xhr.send(f);
+  });
 }
 
 function initTabs() {

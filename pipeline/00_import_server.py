@@ -36,6 +36,7 @@ import argparse
 import json
 import re
 import socket
+import subprocess
 import sys
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -43,7 +44,10 @@ from urllib.parse import parse_qs, urlparse
 
 # Video containers a phone can plausibly hand us. iPhone records HEVC in .mov;
 # ffmpeg reads it, so we accept and never transcode here.
-ALLOWED_SUFFIXES = {".mp4", ".mov", ".m4v", ".insv", ".avi", ".mkv"}
+VIDEO_SUFFIXES = {".mp4", ".mov", ".m4v", ".insv", ".avi", ".mkv"}
+# Stills: iPhone shoots HEIC by default. DNG for anyone shooting raw.
+IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".heic", ".heif", ".dng", ".tif", ".tiff"}
+ALLOWED_SUFFIXES = VIDEO_SUFFIXES | IMAGE_SUFFIXES
 CHUNK = 1 << 20  # 1 MiB
 SAFE = re.compile(r"[^A-Za-z0-9._-]")
 
@@ -57,6 +61,51 @@ def safe_name(raw: str, fallback: str) -> str:
     base = raw.replace("\\", "/").split("/")[-1]
     cleaned = SAFE.sub("_", base).lstrip(".")
     return cleaned if cleaned and cleaned.strip(".") else fallback
+
+
+def probe_video(path: Path) -> dict:
+    """Report what actually landed, and whether iOS quietly re-encoded it on the way.
+
+    This is not a nicety. Uploading through the iOS Photos picker hands the page a
+    "compatible" *representation*, not the file on disk: a 4K60 HEVC capture arrives
+    as 4K30 H.264 at roughly the HEVC bitrate -- half the frames gone and a weaker
+    codec at the same data rate. Measured, not theorised (see _private notes). The
+    only way to know is to look at the bytes that arrived, so we look and say so.
+    """
+    try:
+        r = subprocess.run(
+            ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
+             "stream=codec_name,width,height,r_frame_rate,bit_rate", "-show_entries",
+             "format=duration,bit_rate", "-of", "json", str(path)],
+            capture_output=True, text=True, timeout=30,
+        )
+        if r.returncode != 0:
+            return {}
+        d = json.loads(r.stdout)
+        st = (d.get("streams") or [{}])[0]
+        fm = d.get("format") or {}
+        num, _, den = (st.get("r_frame_rate") or "0/1").partition("/")
+        fps = round(float(num) / float(den or 1), 2) if float(den or 1) else 0.0
+        rate = int(fm.get("bit_rate") or st.get("bit_rate") or 0)
+        info = {
+            "codec": st.get("codec_name"),
+            "width": st.get("width"),
+            "height": st.get("height"),
+            "fps": fps,
+            "mbps": round(rate / 1e6, 1) if rate else None,
+            "seconds": round(float(fm.get("duration") or 0), 1),
+        }
+        # An iPhone original is HEVC unless "Most Compatible" is set; H.264 at ~25 Mbps
+        # is what the Photos picker's export produces, and it caps at 30fps.
+        if info["codec"] == "h264" and info["mbps"] and info["mbps"] < 30 and (info["width"] or 0) >= 3000:
+            info["warning"] = (
+                f"H.264 @ {info['mbps']} Mbps {info['fps']}fps - looks re-encoded by the Photos picker, "
+                f"not your original. If you shot HEVC or 60fps, this is not what you shot. "
+                f"Use Share -> Save to Files on the phone, then import from Files."
+            )
+        return info
+    except (OSError, subprocess.SubprocessError, ValueError, KeyError):
+        return {}
 
 
 def lan_ip() -> str:
@@ -121,7 +170,10 @@ class ImportHandler(SimpleHTTPRequestHandler):
         except ValueError:
             return self._json(411, {"ok": False, "error": "Content-Length required"})
 
-        dest_dir = self.data_root / scene
+        # Stills go in their own subdir: stage 1 globs the scene dir for the video,
+        # and 200 reference photos sitting next to it would just be in the way.
+        is_video = suffix in VIDEO_SUFFIXES
+        dest_dir = self.data_root / scene if is_video else self.data_root / scene / "photos"
         dest_dir.mkdir(parents=True, exist_ok=True)
         final = dest_dir / name
         partial = dest_dir / (name + ".part")
@@ -153,10 +205,20 @@ class ImportHandler(SimpleHTTPRequestHandler):
         # upload can never look like a complete capture to the next stage.
         partial.replace(final)
         print(f"OK saved {final}  ({mb:,.0f} MB)", flush=True)
-        print("   next:  python pipeline/01_extract_frames.py "
-              f"--input {final.as_posix()} --out {(dest_dir / 'frames').as_posix()} "
-              "--fps 3 --long-edge 1600 --keep 0.85", flush=True)
-        return self._json(200, {"ok": True, "saved": str(final), "bytes": got, "scene": scene})
+
+        media = probe_video(final) if is_video else {}
+        if media:
+            print(f"   {media.get('codec')} {media.get('width')}x{media.get('height')} "
+                  f"{media.get('fps')}fps {media.get('mbps')}Mbps {media.get('seconds')}s", flush=True)
+        if media.get("warning"):
+            print(f"   !! {media['warning']}", flush=True)
+        if is_video:
+            print("   next:  python pipeline/01_extract_frames.py "
+                  f"--input {final.as_posix()} --out {(dest_dir / ('frames_' + final.stem)).as_posix()} "
+                  "--fps 3 --long-edge 1600 --keep 0.85", flush=True)
+        return self._json(200, {"ok": True, "saved": str(final), "bytes": got,
+                                "scene": scene, "kind": "video" if is_video else "photo",
+                                "media": media})
 
 
 def main() -> int:

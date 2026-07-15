@@ -110,8 +110,14 @@ def phase_shift(a: np.ndarray, b: np.ndarray) -> tuple[float, float, float]:
     falling monotonically across that boundary (0.95 -> 0.15 on the same pan) and
     is the honest tell, but its absolute scale depends on how textured the subject
     is -- random noise peaks far higher than real photographs -- so it is reported
-    rather than thresholded. Calibrate `match_confidence` against a real capture
-    before trusting a hard floor.
+    rather than thresholded.
+
+    Calibration, from the first real captures (4K30 handheld, bookshelf, 241 and 182
+    frames, both with healthy 92-94% measured overlap): median peak **0.119 and 0.130**.
+    Against the synthetic pan above, the same healthy overlap peaks at 0.95. So real
+    photographs sit roughly an order of magnitude lower, and any absolute floor borrowed
+    from synthetic data would reject every genuine capture. Two samples from one room is
+    not a calibration -- widen it before hard-coding a threshold.
     """
     a = a - a.mean()
     b = b - b.mean()

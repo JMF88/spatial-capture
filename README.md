@@ -116,6 +116,8 @@ python pipeline/00_import_server.py     # prints a LAN URL; open it on your phon
 
 The GitHub Pages copy can't import — a secure page may not POST to a plain-HTTP LAN address — so the app detects that and says so instead of failing quietly.
 
+**Shoot to Files, import from Files.** The iOS Photos picker does not hand a web page the file on disk; it hands over a "compatible" *representation*. Measured on a real capture here: a 4K60 HEVC take arrived as **4K30 H.264 at ~24.5 Mbps** — half the frames discarded and a weaker codec at the same bitrate, before reconstruction ever started. Record to a Files location (Blackmagic Camera can) and import from Files, and the original bytes survive. The import server ffprobes whatever lands and warns when it looks re-encoded, because this is invisible otherwise.
+
 ## Quality
 
 `pytest` unit tests cover the pure logic (frame sharpness, splat-PLY validation, COLMAP IO + projection, semantic fusion on a synthetic scene, dataset splitting, query scoring, the orchestrator's stage planning, and the eval gate). `ruff` lints. Both run on every push via GitHub Actions. `pipeline/gate.py` blocks publishing a scene whose reconstruction/classifier/OCR metrics miss threshold.

@@ -60,17 +60,17 @@
         <div class="step-h"><span class="n">2</span>Send it to the workstation</div>
         <p class="step-p" id="import-copy"></p>
         <div class="record">
-          <div class="ring" id="record" role="button" tabindex="0" aria-label="Choose a capture to import">
+          <div class="ring" id="record" role="button" tabindex="0" aria-label="Choose captures to import">
             <span class="core"></span>
           </div>
-          <div class="hint" id="record-hint">tap to pick your capture</div>
-          <div class="bar" id="bar" hidden><span class="fill" id="bar-fill"></span></div>
+          <div class="hint" id="record-hint">tap to pick — videos and photos, multiple at once</div>
         </div>
         <label class="field" id="scene-field">
           <span>scene</span>
           <input id="scene" value="shelf" inputmode="text" autocapitalize="none" autocorrect="off" spellcheck="false">
         </label>
-        <input type="file" id="file" accept="video/*" hidden>
+        <div class="queue" id="queue"></div>
+        <input type="file" id="file" accept="video/*,image/*" multiple hidden>
       </div>
     </section>
 
