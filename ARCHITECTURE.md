@@ -113,7 +113,9 @@ about which is which signals you actually understand the field.
 
 ### 5. Web viewer — `docs/` on GitHub Pages
 - **What:** a static page that loads the trained splat and renders it in-browser
-  with orbit controls — the URL you open on any laptop or phone.
+  with orbit controls — the URL you open on any laptop or phone. It also loads
+  `scene.json` (stage 9) and overlays the scene objects: 3D markers, labels, and a
+  search box that highlights matches in the capture.
 - **Why this way:** a splat renders on a plain laptop/phone GPU; hosting is free
   and static (nothing to break live). A specific trap is avoided: viewers that need
   `SharedArrayBuffer` require COOP/COEP response headers that **GitHub Pages cannot
@@ -167,6 +169,55 @@ about which is which signals you actually understand the field.
   lookups; batch API calls politely.
 
 ---
+
+### 9. Semantic fusion — `understanding/fusion/` (the bridge between the branches)
+- **What:** lift the 2D detections into the splat's 3D frame. For each detection, project the
+  COLMAP sparse points into that camera, keep the ones landing inside the box and in front of
+  the lens, and take their **median** as the object's 3D anchor; then cluster anchors of the
+  same class across frames into unique scene objects and emit `scene.json`.
+- **Why this way:** it needs no dense depth and no extra model — just the poses you already
+  have. The median is robust to a few stray points. It's the cheapest honest way to turn
+  "pixels with labels" into "things at coordinates."
+- **Failure modes:** floaters between the camera and the object drag the median (the documented
+  next step is a depth-MAD filter); textureless objects get too few sparse points to place, so
+  they're skipped rather than mis-placed; the merge radius is in *scene units*, so it wants
+  scaling per capture.
+- **Scale:** the next investment — mask-membership instead of box, DBSCAN instead of greedy
+  clustering, per-object embeddings so query is semantic rather than lexical.
+
+### 10. Query — `understanding/query.py` + the viewer's search
+- **What:** score every scene object against a text query (exact category/label, prefix,
+  keyword, substring) and return ranked hits with their 3D anchors. The viewer runs the same
+  rubric in JS and highlights matches in 3D; the CLI emits `--json` for a tool or an agent.
+- **Why this way:** the structured tier is dependency-free, instant, and unit-testable — and
+  it's what makes a capture *useful* rather than merely pretty. One rubric in both places means
+  the terminal and the browser never disagree.
+- **Failure modes:** lexical matching misses synonyms ("couch" vs "sofa"); the documented next
+  step is a CLIP-embedding tier behind the same API.
+- **Scale:** this is the natural seam for an LLM — detection + OCR already emit structured
+  output, so an agent can ask the scene questions and get back anchors.
+
+## The operator layer — `pipeline/run.py`, `pipeline/gate.py`, `tests/`
+
+- **Orchestrator:** one config drives frames → detect → fuse → publish, skipping stages whose
+  outputs already exist (resumable), with `--dry-run` to print the plan. Splat training stays
+  external on purpose; the config points at its outputs.
+- **Eval gate:** publishing is blocked when reconstruction PSNR/SSIM, classifier macro-F1, or
+  OCR CER miss threshold. A missing metric is reported, never silently passed.
+- **Tests + CI:** the pure logic is unit-tested and linted on every push; heavy (torch/GPU)
+  tests are marked and skipped in the light CI. That's why `splits.py` exists apart from
+  `common.py` — so the split logic is testable without the ML stack.
+- **Why it matters:** the demo proves the capability; this layer answers "how would a team run
+  this without you." And the thing that actually needs to scale isn't compute — it's capture,
+  which is why the app below exists.
+
+## Trove — the capture app (`docs/app`)
+
+An installable mobile PWA: a guided capture coach (Object vs. Enclosure) that turns the capture
+guide into a pre-flight checklist beside the record button, a **Collection** of captured scenes,
+and an **Objects** catalog of everything found across them. Capture quality is the pipeline's
+bottleneck, so the highest-leverage interface in the whole system is the one standing between a
+person and a bad capture.
 
 ## License hygiene (a feature, said out loud)
 

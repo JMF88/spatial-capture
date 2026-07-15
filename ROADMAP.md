@@ -20,6 +20,7 @@ and where it heads. It doubles as the honest scope statement for the repo.
 | Orchestrator + eval gate (`pipeline/run.py`, `gate.py`) | **done, tested** — config-driven, threshold-gated |
 | Test suite + CI (`tests/`, `.github`) | **done, green** — 20 tests, ruff |
 | Classifier → ONNX (`export_onnx.py`) | **done** — torch↔onnx parity verified (browser-ready) |
+| Capture app (`docs/app`) | **done, verified headless** — Trove: guided capture coach + collection + object catalog (installable PWA) |
 | Docs (README / ARCHITECTURE / ROADMAP / CAPTURE_GUIDE) | authored |
 
 _(Kept current as milestones land.)_
