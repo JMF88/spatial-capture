@@ -21,6 +21,9 @@ One capture feeds two branches, which are then **fused into one queryable scene*
       |
    FRAMES   (ffmpeg -> sharp, well-overlapped stills)     [pipeline/01_extract_frames.py]
       |
+   GRADE    exposure/WB drift, blur, overlap, flicker     [pipeline/rate_capture.py]
+            -> GO / RESHOOT *before* the GPU bill
+      |
       |-----------------  RECONSTRUCTION  (AI as OPTIMIZATION)
       |   POSES         where were the cameras?      Postshot SfM  (open lane: VGGT)
       |   SPLAT TRAIN   fit millions of 3D Gaussians Postshot 3DGS (open lane: gsplat)
@@ -51,6 +54,7 @@ Together: capture → reconstruct → detect → classify → read → fuse → 
 |---|---|---|---|
 | **LAN import (phone → workstation)** | `pipeline/00_import_server.py` | — | MIT |
 | Frame extraction | ffmpeg + `pipeline/01_extract_frames.py` | — | LGPL / MIT (this code) |
+| **Capture QA gate** | `pipeline/rate_capture.py` | — | MIT |
 | Camera poses (SfM) | Jawset Postshot | VGGT transformer → COLMAP format | Postshot EULA / Apache-2.0 |
 | Splat training | Jawset Postshot (3DGS) | gsplat | Postshot EULA / **Apache-2.0** |
 | Splat validation | `pipeline/validate_splat_ply.py` | — | MIT |
@@ -59,6 +63,7 @@ Together: capture → reconstruct → detect → classify → read → fuse → 
 | Classification | transfer-learned model (this repo) | — | MIT |
 | Classifier → ONNX | `understanding/classify/export_onnx.py` | — | MIT |
 | OCR + lookup | OCR + Open Library API | — | permissive |
+| Spine→title matching | `understanding/matching.py` | — | MIT |
 | **Semantic fusion** | `understanding/fusion/build_scene.py` → `scene.json` | — | MIT |
 | **Queryable viewer** | `docs/viewer` (Spark + three.js) on GitHub Pages | — | MIT |
 | **Query (terminal/agent)** | `understanding/query.py --json` | — | MIT |
@@ -120,7 +125,9 @@ The GitHub Pages copy can't import — a secure page may not POST to a plain-HTT
 
 ## Quality
 
-`pytest` unit tests cover the pure logic (frame sharpness, splat-PLY validation, COLMAP IO + projection, semantic fusion on a synthetic scene, dataset splitting, query scoring, the orchestrator's stage planning, and the eval gate). `ruff` lints. Both run on every push via GitHub Actions. `pipeline/gate.py` blocks publishing a scene whose reconstruction/classifier/OCR metrics miss threshold.
+`pytest` unit tests cover the pure logic (frame sharpness, splat-PLY validation, COLMAP IO + projection, semantic fusion on a synthetic scene, dataset splitting, query scoring, the orchestrator's stage planning, the eval gate, capture QA, asset encryption, and spine→title matching). `ruff` lints. Both run on every push via GitHub Actions.
+
+Two gates, at opposite ends. `pipeline/rate_capture.py` grades the capture *before* reconstruction — a capture that won't reconstruct is cheap to reject and expensive to discover after 90 minutes of GPU time. `pipeline/gate.py` blocks *publishing* a scene whose reconstruction/classifier/OCR metrics miss threshold. Several tests are built from real failures rather than invented ones: the reads that a real shelf produced, and the false positive one of them caused.
 
 ```bash
 pytest -m "not heavy" -q     # light, no torch
