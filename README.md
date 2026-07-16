@@ -146,7 +146,7 @@ pytest -m "not heavy" -q     # light, no torch
 ruff check .
 ```
 
-See [`capture/CAPTURE_GUIDE.md`](capture/CAPTURE_GUIDE.md) for how to shoot a capture that actually reconstructs, [`ARCHITECTURE.md`](ARCHITECTURE.md) for why every choice was made (and how each stage scales to a team), [`pipeline/README.md`](pipeline/README.md) for the pose/train lanes, and [`ROADMAP.md`](ROADMAP.md) for scope and where this goes next.
+See [`docs/PRACTICE.md`](docs/PRACTICE.md) for the practice written down properly — what was measured here, what the literature says, and where the two disagree (SIFT is invariant to affine illumination change, so locking exposure does *not* help the way folklore says it does; it helps because auto-exposure clips highlights and varies motion blur). See [`capture/CAPTURE_GUIDE.md`](capture/CAPTURE_GUIDE.md) for how to shoot a capture that actually reconstructs, [`ARCHITECTURE.md`](ARCHITECTURE.md) for why every choice was made (and how each stage scales to a team), [`pipeline/README.md`](pipeline/README.md) for the pose/train lanes, and [`ROADMAP.md`](ROADMAP.md) for scope and where this goes next.
 
 ## Hardware
 
