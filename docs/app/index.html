@@ -70,7 +70,9 @@
           <input id="scene" value="shelf" inputmode="text" autocapitalize="none" autocorrect="off" spellcheck="false">
         </label>
         <div class="queue" id="queue"></div>
-        <input type="file" id="file" accept="video/*,image/*" multiple hidden>
+        <!-- No accept filter: iOS greys out extensions it doesn't recognize (.ply/.spz).
+             The server's ALLOWED_SUFFIXES list is the real gate. -->
+        <input type="file" id="file" multiple hidden>
       </div>
     </section>
 

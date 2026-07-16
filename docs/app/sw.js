@@ -1,5 +1,5 @@
 // Minimal offline shell for Trove (installable PWA). Cache-first for the app files.
-const CACHE = "trove-v1";
+const CACHE = "trove-v3";   // v3: no picker accept filter (iOS greys unknown extensions)
 const ASSETS = ["./", "index.html", "styles.css", "app.js", "manifest.webmanifest",
                 "icon.svg", "assets/collection.json"];
 

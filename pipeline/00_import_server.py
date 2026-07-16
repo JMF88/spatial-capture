@@ -49,7 +49,9 @@ from urllib.parse import parse_qs, urlparse
 VIDEO_SUFFIXES = {".mp4", ".mov", ".m4v", ".insv", ".avi", ".mkv"}
 # Stills: iPhone shoots HEIC by default. DNG for anyone shooting raw.
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".heic", ".heif", ".dng", ".tif", ".tiff"}
-ALLOWED_SUFFIXES = VIDEO_SUFFIXES | IMAGE_SUFFIXES
+# Splat/point-cloud exports from on-device scanners (Scaniverse et al) -- benchmark inputs.
+SPLAT_SUFFIXES = {".ply", ".spz", ".sog", ".splat"}
+ALLOWED_SUFFIXES = VIDEO_SUFFIXES | IMAGE_SUFFIXES | SPLAT_SUFFIXES
 CHUNK = 1 << 20  # 1 MiB
 SAFE = re.compile(r"[^A-Za-z0-9._-]")
 
