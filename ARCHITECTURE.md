@@ -206,7 +206,7 @@ cannot:** fit a smooth trend, measure the residual. On one shelf, same subject:
 - **Scale:** cache text embeddings; batch/stream frames for constant memory; for a
   fixed client vocabulary, distill to a smaller closed-set detector for speed.
 
-### 7. Classification — `understanding/classify/` (the model I trained)
+### 7. Classification — `understanding/classify/` (the model we trained)
 - **What:** a supervised image classifier via **transfer learning** — start from an
   ImageNet-pretrained backbone (timm), replace the head, **freeze the backbone** and
   warm up the head, then **unfreeze and fine-tune** at a low LR. Stratified
@@ -222,7 +222,7 @@ cannot:** fit a smooth trend, measure the residual. On one shelf, same subject:
   a labeling workflow + guidelines, an **active-learning** loop (label the images the
   model is least sure about), a **data flywheel** (production captures → new labels →
   retrain), versioned datasets + models, an eval gate in CI, and monitoring for drift.
-  That narrative — *"here's how I'd turn this 90-image demo into a maintained model a
+  That narrative — *"here's how we'd turn this 90-image demo into a maintained model a
   team owns"* — is the point of building it by hand.
 
 ### 8. OCR + lookup — `understanding/ocr_titles.py` (feature B)
@@ -328,7 +328,7 @@ security-conscious team wants to see — it's free credibility, not a footnote.
 
 ## Cost / eval / security discipline (productionization view)
 
-If I led a team shipping this: bound GPU cost per scene and per training run; gate
+If we led a team shipping this: bound GPU cost per scene and per training run; gate
 merges on reconstruction and classifier eval metrics; keep humans in the loop on
 low-confidence understanding outputs; treat every dependency's license as a
 first-class decision; and never let a learned component (VGGT, the classifier) be a

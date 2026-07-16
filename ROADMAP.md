@@ -41,7 +41,7 @@ _(Kept current as milestones land.)_
 - **M3 — understanding on real frames.** Detect books/objects → train the classifier
   on real spine crops → OCR reads titles → results surfaced beside the splat.
 - **M4 — open lane reproduced.** VGGT→gsplat produces a second splat, in-repo, fully
-  open-source — the "I can productionize this without the proprietary app" proof.
+  open-source — the "this is productionizable without the proprietary app" proof.
 - **M5 — polish + measurement.** Measurement overlay tuned; README/demo tightened;
   full review before sharing.
 

@@ -31,7 +31,7 @@ One capture feeds two branches, which are then **fused into one queryable scene*
       |
       |-----------------  UNDERSTANDING  (AI as SUPERVISED / TRAINED MODELS)
       |   DETECT        find things, zero-shot        open-vocab detector [understanding/detect.py]
-      |   CLASSIFY      a model *I trained*           transfer learning   [understanding/classify/]
+      |   CLASSIFY      a model *we trained*          transfer learning   [understanding/classify/]
       |   READ          OCR spine titles -> lookup    [understanding/ocr_titles.py]
       |
       \-----------------  FUSE  ->  scene.json        [understanding/fusion/]
