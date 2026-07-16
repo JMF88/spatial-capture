@@ -34,7 +34,26 @@ python 03_train_gsplat.py --data-dir data/shelf --gsplat-examples ../gsplat/exam
 Keep it OFF the demo critical path: if the CUDA build fights you, train in Postshot
 and present this lane as the open/reproducible version with a recorded run.
 
-### Classical fallback — COLMAP / GLOMAP (proves the fundamentals; best for the office)
+### COLMAP / GLOMAP — not a fallback. The path.
+
+Measured 2026-07-15, and it inverts the framing this file used to have: **COLMAP is
+mandatory upstream of any trainer that does not do its own SfM** (Brush takes COLMAP or
+Nerfstudio data and does no SfM), and it writes `sparse/0/{cameras,images,points3D}.bin`
+**natively** — exactly what semantic fusion needs. Postshot's free tier exports COLMAP
+*text* and needs a `model_converter --output_type BIN` step, and its splat export is
+paywalled entirely. So the free lane produces better pose output than the paid one, as a
+first-class artifact. "Fallback" was the wrong word.
+
+**Its CUDA build may not run on your machine, and that is survivable.** Here, COLMAP 4.1.0
+dies at `CUDA error at cuda.cc:56` about two seconds in: the build wants a newer CUDA than
+the driver's ceiling (566.07 caps at 12.7) and ships no CUDA runtime of its own. CPU is
+fine — **354 frames of feature extraction took 49 seconds**. Pass
+`--FeatureExtraction.use_gpu 0` and `--FeatureMatching.use_gpu 0`. Exhaustive matching is
+the slow part (~62k pairs from 354 frames ran at a few hundred pairs/minute on CPU); use
+`sequential_matcher` when the frames really are one continuous take.
+
+Note the 4.1 option rename: `FeatureExtraction.*` and `FeatureMatching.*`, **not** the old
+`SiftExtraction.*` / `SiftMatching.*`. The old names fail with "unrecognised option".
 In 2026 GLOMAP folded into COLMAP (>=4.1) as `--Mapper.mapper_type global`; the
 standalone `glomap` binary still works. Prebuilt COLMAP Windows binaries, no compile:
 ```
