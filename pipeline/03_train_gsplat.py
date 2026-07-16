@@ -14,7 +14,8 @@ Try a prebuilt wheel first to avoid a compiler:
   pip install -r gsplat/examples/requirements.txt
 If no wheel matches your torch+CUDA, you need VS 2022 Build Tools + a CUDA Toolkit
 to build from source. If that fights you, don't get blocked on the CUDA build -
-train in Postshot instead. This lane is the reproducible/open proof, not the demo path.
+train with Brush instead (Rust/wgpu, no CUDA toolchain). This lane is the second
+opinion on the same poses.
 
 Data dir must contain:  images/  and  sparse/0/{cameras,images,points3D}.bin
 

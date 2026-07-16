@@ -13,16 +13,17 @@ and where it heads. It doubles as the honest scope statement for the repo.
 | Capture QA gate (`pipeline/rate_capture.py`) | **done, tested, and corrected by real data** — grades a capture before the GPU. Rejected one real capture (confirmed right downstream) and *failed* nine good ones (confirmed wrong, fixed). Measures the camera, not the room — see ARCHITECTURE §2b |
 | Classifier train/eval/infer (`understanding/classify`) | **done, validated** end-to-end on the real torch/timm stack |
 | Open-vocab detector (`understanding/detect.py`) | **done**; verified API; smoke-tested on a sample image |
-| OCR + book lookup (`understanding/ocr_titles.py`) | **run on real crops** — reads spines legibly; resolves **0/32** to a book. Lookup is exact on clean text (1.000), but noisy reads off a gate-rejected capture retrieve nothing. Unproven at shelf scale until a capture the gate accepts. See ARCHITECTURE §8. |
+| OCR + book lookup (`understanding/ocr_titles.py`) | **run on real crops** — reads spines legibly; resolves **0/32** to a book. Lookup is exact on clean text (1.000), but noisy reads off a gate-rejected capture retrieve nothing. Rerun on the gate-passing capture: retrieval matches **4 titles** (2 verified-real, incl. Rhythm of War at 0.870); query construction is the bottleneck. See ARCHITECTURE §8. |
 | Spine→title match policy (`understanding/matching.py`) | **done, tested** — coverage-scaled containment; killed a real false positive (0.900 → 0.256) with recall intact |
-| Splat — Postshot lane | doc'd; ready to run on your capture |
+| Splat — COLMAP → Brush lane | **done, proven on the real capture** — 354/354 frames registered (0.810 px mean reprojection), 1,342,519 Gaussians in 8.8 min, cleaned to 1,019,159 (75.9%), compressed to a 9.5 MB SOG |
+| Splat — Postshot lane | doc'd; splat export is paywalled — demoted to a poses fallback |
 | Splat — open lane (VGGT→gsplat) | scripted + documented; CUDA build, run after the demo is safe |
 | Queryable web viewer (`docs/viewer`) | **done, verified headless** — orbit + measure + search→3D highlight + passphrase gate; **zero-CDN** (deps vendored, renders with every external host blocked) |
-| Metric calibration (`docs/viewer/scale.js`) | **done, tested** — one known length → real units scene-wide; shareable via `?scale=`; reports its own error |
+| Metric calibration (`docs/viewer/scale.js`) | **built; validation pending a real measurement** — one known length → real units scene-wide; shareable via `?scale=`; reports its own error |
 | Semantic fusion (`understanding/fusion`) | **done, tested** — lifts 2D detections into a 3D scene graph (scene.json) |
 | Query CLI (`understanding/query.py`) | **done, tested** — terminal + `--json` for an agent |
 | Orchestrator + eval gate (`pipeline/run.py`, `gate.py`) | **done, tested** — config-driven, threshold-gated |
-| Test suite + CI (`tests/`, `.github`) | **done, green** — 51 tests, ruff. Several are built from real failures rather than invented ones. |
+| Test suite + CI (`tests/`, `.github`) | **green locally; never pushed** — 59 tests, ruff. Several are built from real failures rather than invented ones. |
 | Classifier → ONNX (`export_onnx.py`) | **done** — torch↔onnx parity verified (browser-ready) |
 | Capture app (`docs/app`) | **done, verified headless** — Trove: capture coach + WiFi import + collection + object catalog (installable PWA). Not a camera, by platform necessity — see README. |
 | Docs (README / ARCHITECTURE / ROADMAP / CAPTURE_GUIDE) | authored |
@@ -32,9 +33,10 @@ _(Kept current as milestones land.)_
 ## Milestones
 
 - **M0 — repo + pipeline code (no capture needed).** Everything runnable, documented,
-  validated with synthetic/sample data. ← we are here.
-- **M1 — first real capture.** Bookshelf (object). Frames → Postshot → `.ply` →
-  SuperSplat → `docs/` → live URL. This is the reliable first result.
+  validated with synthetic/sample data. Done.
+- **M1 — first real capture.** Bookshelf (object). Substantially done: capture shot,
+  frames → COLMAP → Brush → cleaned → compressed to a 9.5 MB SOG that renders in the
+  repo's viewer. ← we are here. Remaining: publish decision + live URL.
 - **M2 — the enclosure.** Whole office, inside-out. The hard case that matters for real walkthroughs.
 - **M3 — understanding on real frames.** Detect books/objects → train the classifier
   on real spine crops → OCR reads titles → results surfaced beside the splat.
@@ -48,11 +50,11 @@ _(Kept current as milestones land.)_
 | Push | How far it got | Notes |
 |---|---|---|
 | Bookshelf capture (take 1, stock Camera) | **rejected by the gate** | Two 4K takes, handheld. Framing and pacing were fine — 92-94% frame overlap, only 4-11% soft frames. Killed by the camera, not the operator: auto-exposure re-metered continuously while panning between a window and dark shelves, swinging scene brightness **92% and 106%**, with white balance drifting 18-23% alongside. `rate_capture.py` returned RESHOOT before any GPU time was spent. Reshoot needs locked exposure/WB/focus, which stock iOS will not give you (AE/AF Lock holds exposure and focus but not white balance). |
-| Bookshelf capture (take 2, Blackmagic, locked) | **PASSED — 9/9 clips** | Nine passes, 139 s, 4K/24 HEVC ~36 Mbps, portrait, recorded to Files (no Photos-picker re-encode). Sharpness median 402–1189, soft frames **0–3%**, overlap 92–98%, exposure wobble 2.2–6.2% against 18.0%/16.1% on the rejected take. Locking exposure/WB/focus and adding light was the entire difference; the operator's framing and pace were never the problem. Ready for Postshot. |
+| Bookshelf capture (take 2, Blackmagic, locked) | **cleared — zero blockers** (9/9 MARGINAL, advisory warnings only; none GO, none RESHOOT) | Nine passes, 139 s, 4K/24 HEVC ~36 Mbps, portrait, recorded to Files (no Photos-picker re-encode). Sharpness median 402–1189, soft frames **0–3%**, overlap 92–98%, exposure wobble 2.2–6.2% against 18.0%/16.1% on the rejected take. Locking exposure/WB/focus and adding light was the entire difference; the operator's framing and pace were never the problem. Since carried through COLMAP → Brush: 354/354 frames registered, trained, cleaned, compressed to a 9.5 MB SOG. |
 | Office enclosure | not started | The harder case, and the one the repo is built for. Gimbal earns its place here (long continuous walk, worse light) in a way it did not for the shelf. |
 | Classifier on real books | not started | needs a capture the gate accepts |
-| OCR titles | **run, honest result** | 38 book detections → 32 spine reads, human-legible, **0 resolved**. Isolated the chain: lookup is exact on clean text, retrieval is the wall on noisy reads. Fixed a false-positive bug it exposed (see ARCHITECTURE §8). Rerun on the reshoot: if clean frames still don't resolve, the OCR stage is the problem, not the capture. |
-| VGGT→gsplat open lane | blocked | this machine has no CUDA toolkit, no MSVC and no COLMAP, so gsplat cannot compile — the open lane needs a toolchain install, not just a GPU |
+| OCR titles | **run, honest result** | 38 book detections → 32 spine reads, human-legible, **0 resolved**. Isolated the chain: lookup is exact on clean text, retrieval is the wall on noisy reads. Fixed a false-positive bug it exposed (see ARCHITECTURE §8). Rerun on the reshoot: 4 titles resolved (2 verified-real); query construction, not the capture, is the remaining wall. |
+| VGGT→gsplat open lane | blocked at the trainer | COLMAP 4.1.0 is installed and carried the real capture (354/354 registered), so poses are solved; gsplat still cannot compile — no CUDA toolkit, no MSVC. The open lane needs a toolchain install, not just a GPU |
 
 ## Horizon
 
@@ -88,10 +90,10 @@ _(Kept current as milestones land.)_
 ## If time collapses (cut order)
 
 Cut from the top; the bottom line still lands:
-1. Cut VGGT→gsplat open lane → keep Postshot only.
+1. Cut VGGT→gsplat open lane → keep COLMAP→Brush only.
 2. Cut the OCR title-reading garnish.
 3. Cut the trained classifier → keep zero-shot detection only.
-4. Cut self-hosted Pages → SuperSplat one-click `Publish` URL.
+4. Cut self-hosted Pages → any static host; the viewer takes `?src=<url>`.
 
 **Irreducible minimum:** one clean bookshelf/office capture rendering from a URL on
 any phone, plus an honest README naming the pipeline and the ML framing. That single

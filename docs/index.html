@@ -130,32 +130,34 @@
 
   <a class="cta" href="https://github.com/jmf88/spatial-capture">Read the source &rarr;</a>
   <a class="cta secondary" href="./app/">Open Trove &mdash; the capture app &rarr;</a>
-  <div class="note"><strong>No capture has been shot yet.</strong> The pipeline is built and
-    tested end to end on synthetic and sample data; no real scene has been through it. The
-    <a href="./viewer/">viewer</a> has no scene loaded and Trove lists zero scenes. Nothing
-    here is illustrative &mdash; when a scene appears, it's a real one.</div>
+  <div class="note"><strong>A real capture has been shot and reconstructed.</strong> The first
+    real scene passed the QA gate and trained to a 9.5&nbsp;MB splat that renders in the repo's
+    own <a href="./viewer/">viewer</a>. Publishing the asset is a pending decision, so the
+    hosted viewer ships without a scene and Trove lists zero scenes. Nothing here is
+    illustrative &mdash; every number on this page is a measured result.</div>
 
-  <h2>Why there's no scene yet</h2>
-  <p class="lede">Two real takes were shot. Both were refused before either reached the GPU.
-    Splat training costs 30&ndash;90 minutes on a laptop 4070, and it fails for reasons that
-    were already visible in the frames &mdash; so the frames get graded first.</p>
+  <h2>Two takes: one refused, one cleared</h2>
+  <p class="lede">The first take &mdash; two clips, stock camera app &mdash; was refused before
+    either clip reached the GPU. Splat training fails for reasons that are already visible in
+    the frames &mdash; so the frames get graded first, before any GPU time is spent. The
+    second take cleared the gate and trained.</p>
 
   <div class="gate">
     <div class="scroll">
     <table>
       <thead>
-        <tr><th>Take</th><th>Frames</th><th>Exposure drift</th><th>WB drift</th><th>Verdict</th></tr>
+        <tr><th>Clip</th><th>Frames</th><th>Exposure drift</th><th>WB drift</th><th>Verdict</th></tr>
       </thead>
       <tbody>
         <tr>
-          <td class="n" data-label="Take">1</td>
+          <td class="n" data-label="Clip">1</td>
           <td class="n" data-label="Frames">241</td>
           <td class="n" data-label="Exposure drift">92%</td>
           <td class="n" data-label="WB drift">18%</td>
           <td data-label="Verdict"><span class="verdict">RESHOOT</span></td>
         </tr>
         <tr>
-          <td class="n" data-label="Take">2</td>
+          <td class="n" data-label="Clip">2</td>
           <td class="n" data-label="Frames">182</td>
           <td class="n" data-label="Exposure drift">106%</td>
           <td class="n" data-label="WB drift">23%</td>
@@ -172,11 +174,23 @@
       flicker, frame-to-frame overlap and clipping, then returns GO / MARGINAL / RESHOOT with
       the reasons named. It's advisory and says so: it can't see coverage holes or whether you
       closed the loop, and its overlap metric saturates below 50%. Measure first, spend later.</p>
+    <p class="why">The second take &mdash; nine passes, shutter, ISO, white balance and focus
+      locked, 4K/24 &mdash; cleared with zero blockers: all nine passes graded MARGINAL with
+      advisory warnings only, none GO, none RESHOOT. Along the way the gate itself was caught
+      wrong once &mdash; it flagged a locked-exposure take's slow brightness ramp as drift
+      &mdash; and was fixed to measure the shape of the curve, not its size.</p>
     <p class="why">The grader is in the repo and under test
-      (<code>pipeline/rate_capture.py</code>). The two takes are not &mdash; <code>data/</code>
+      (<code>pipeline/rate_capture.py</code>). The takes are not &mdash; <code>data/</code>
       is gitignored, because they're multi-gigabyte video. Those numbers are measured results,
       not something you can re-run from a clone.</p>
   </div>
+
+  <p class="lede">What the cleared take bought: COLMAP registered 354/354 frames
+    (0.810&nbsp;px mean reprojection error), Brush trained 1,342,519 Gaussians in 8.8
+    minutes, cleaning kept 1,019,159 (75.9%), and compression produced the 9.5&nbsp;MB SOG
+    the viewer renders. Downstream, open-vocab detection over all 354 frames (68&nbsp;s on
+    GPU, 1,564 detections) fused to 84 3D objects &mdash; typing &ldquo;book&rdquo; in the
+    viewer highlights 33 of them on the actual shelf.</p>
 
   <h2>Two branches, two kinds of AI</h2>
   <p>One capture feeds two branches, and the interesting part is that they're two
@@ -189,8 +203,8 @@
     </div>
     <div class="card">
       <h3>Understanding &mdash; supervision</h3>
-      <p>Open-vocabulary detection, a transfer-learned classifier, and OCR find and read
-        what's in the scene. Models trained on labeled examples.</p>
+      <p>Open-vocabulary detection, a transfer-learning classifier stage, and OCR find and
+        read what's in the scene. Models trained on labeled examples.</p>
     </div>
   </div>
 
@@ -204,13 +218,17 @@
       <code>pipeline/01_extract_frames.py</code></li>
     <li><b>Capture QA</b> <span>&mdash; grade the take. GO / MARGINAL / RESHOOT, before the
       GPU time.</span> <code>pipeline/rate_capture.py</code></li>
-    <li><b>Poses</b> <span>&mdash; structure-from-motion: where was the camera? Postshot, or an
-      open VGGT lane.</span> <code>pipeline/02_poses_vggt.py</code></li>
-    <li><b>Splat</b> <span>&mdash; fit the Gaussians. Postshot 3DGS, or gsplat (Apache-2.0 on
-      purpose &mdash; the INRIA reference is non-commercial).</span>
-      <code>pipeline/03_train_gsplat.py</code></li>
-    <li><b>Detect, classify, read</b> <span>&mdash; open-vocab detector, a classifier trained
-      here, OCR.</span> <code>understanding/</code></li>
+    <li><b>Poses</b> <span>&mdash; structure-from-motion: where was the camera? COLMAP by
+      default (354/354 registered on the real capture); Postshot's free tier survives as a
+      poses fallback, and there's an open VGGT lane.</span>
+      <code>pipeline/02_poses_vggt.py</code></li>
+    <li><b>Splat</b> <span>&mdash; fit the Gaussians. Brush (Rust/wgpu &mdash; no CUDA
+      toolkit) by default, or gsplat (Apache-2.0 on purpose &mdash; the INRIA reference is
+      non-commercial). Postshot was dropped from this stage: its splat export is
+      paywalled.</span> <code>pipeline/03_train_gsplat.py</code></li>
+    <li><b>Detect, classify, read</b> <span>&mdash; open-vocab detector, a transfer-learning
+      classifier stage (validated on synthetic data so far), OCR.</span>
+      <code>understanding/</code></li>
     <li><b>Fuse</b> <span>&mdash; camera poses lift the 2D detections into the splat's 3D frame.
       Pixels-with-labels become a scene graph.</span>
       <code>understanding/fusion/build_scene.py</code></li>
@@ -221,7 +239,8 @@
     what's already built (<code>pipeline/run.py</code>). An eval gate blocks publishing a scene
     whose reconstruction, classifier or OCR metrics miss threshold
     (<code>pipeline/gate.py</code>) &mdash; the same measure-first rule, at the other end.
-    Unit tests cover the pure logic; <code>ruff</code> lints; both run on every push.</p>
+    Unit tests cover the pure logic; <code>ruff</code> lints; both are green locally and run on
+    every push once the repo is published.</p>
 
   <h2>Public code, private room</h2>
   <p class="lede">GitHub Pages has no access control &mdash; a public repo serves public files,
@@ -252,7 +271,8 @@
     twins &mdash; are <em>enclosures</em>: you stand inside and the camera looks out. Divergent
     views give the solver less overlap to lock onto, so inside-out is the harder case than
     orbiting an object &mdash; which is exactly why it's the valuable one. That's the case this
-    pipeline is built for, and the one it hasn't proven yet.</p>
+    pipeline is built for, and the one it hasn't proven yet: the reconstructed shelf was the
+    de-risking subject; the enclosure is next.</p>
 
   <footer>
     Architecture rationale, reproduce steps and scope in the

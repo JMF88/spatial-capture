@@ -8,9 +8,9 @@ geometry in one forward pass, then exports COLMAP-format poses for the trainer.
 We use the low-VRAM fork so ~150 images fit in 8 GB.
 
 This lane is OPTIONAL and OFF the demo critical path. The reliable default is
-Jawset Postshot (GUI, no CUDA build) - see pipeline/README.md. VGGT is best on the
-bounded bookshelf; for the whole-office enclosure prefer Postshot or COLMAP, since
-VGGT poses get noisy on large divergent scenes.
+COLMAP -> Brush - see pipeline/README.md. VGGT is best on the bounded bookshelf;
+for the whole-office enclosure prefer COLMAP, since VGGT poses get noisy on large
+divergent scenes.
 
 Prereqs (install once; heavy, needs a working CUDA torch):
   git clone https://github.com/harry7557558/vggt-low-vram.git

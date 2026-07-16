@@ -1,16 +1,18 @@
 # spatial-capture
 
+<!-- screenshot: hero image of the trained splat in the repo viewer goes here. TODO: publishing a real-room screenshot is a pending decision — leave commented out until decided. -->
+
 Capture a real enclosed space with a phone, reconstruct it as a **browser-viewable 3D Gaussian splat**, **understand what's in it**, and **ask it questions**. A reproducible, Windows-native pipeline that runs on a single consumer GPU.
 
-> **Status:** the pipeline is built and tested end to end — reconstruction, understanding, semantic fusion, a queryable viewer with metric calibration, an orchestrator + two eval gates, a test suite/CI, and a mobile capture app. **The first real capture has been shot and cleared the gate** (9 passes, 4K, locked exposure); the splat itself isn't trained yet, so there's no demo link and the collection ships empty. Nothing in this repo is illustrative — when a scene appears, it's a real one. Built and tested on Windows 11 with an RTX 4070 Laptop (8 GB VRAM).
+> **Status:** the pipeline is built and tested end to end — reconstruction, understanding, semantic fusion, a queryable viewer with metric calibration, an orchestrator + two eval gates, a test suite/CI, and a mobile capture app. **The first real capture has been shot, passed the QA gate with zero blockers** (nine passes, 4K, locked exposure — all nine MARGINAL, advisory warnings only), **and trained to a splat**: 1,342,519 Gaussians, cleaned to 1,019,159, compressed to a 9.5 MB SOG that renders in the repo's own viewer. No live demo link yet — publishing the asset is a pending decision, so the collection ships empty. Nothing in this repo is illustrative — when a scene appears, it's a real one. Built and tested on Windows 11 with an RTX 4070 Laptop (8 GB VRAM).
 
-**Live demo:** _(coming — a GitHub Pages URL you open on any phone or laptop and orbit around)_
+**Live demo:** _(pending the publish decision — a GitHub Pages URL you open on any phone or laptop and orbit around)_
 
 ---
 
 ## Why enclosures
 
-Most real reality-capture jobs — training simulations, workspace walkthroughs, digital twins of venues and facilities — are **enclosures**: you stand *inside* the space and the camera looks *outward*. That "inside-out" capture is the harder case than orbiting a single object (divergent views give the solver less overlap to lock onto), which is exactly why it's the valuable one. This repo is built for the enclosure case and hasn't proven it yet: the bookshelf — the de-risking subject in the same room — has been shot and cleared the capture gate; the enclosure is next.
+Most real reality-capture jobs — training simulations, workspace walkthroughs, digital twins of venues and facilities — are **enclosures**: you stand *inside* the space and the camera looks *outward*. That "inside-out" capture is the harder case than orbiting a single object (divergent views give the solver less overlap to lock onto), which is exactly why it's the valuable one. This repo is built for the enclosure case and hasn't proven it yet: the bookshelf — the de-risking subject in the same room — has been shot, passed the capture gate with zero blockers (all nine passes MARGINAL, advisory warnings only), and reconstructed; the enclosure is next.
 
 ## Two branches, two kinds of AI — then fused
 
@@ -27,7 +29,7 @@ One capture feeds two branches, which are then **fused into one queryable scene*
       |-----------------  RECONSTRUCTION  (AI as OPTIMIZATION)
       |   POSES         where were the cameras?      COLMAP        (open lane: VGGT)
       |   SPLAT TRAIN   fit millions of 3D Gaussians Brush/wgpu    (open lane: gsplat)
-      |   CLEAN/EXPORT  crop, compress               SuperSplat -> .spz / .sog
+      |   CLEAN/EXPORT  crop, compress               clean_splat.py -> compress_splat.py -> .sog
       |
       |-----------------  UNDERSTANDING  (AI as SUPERVISED / TRAINED MODELS)
       |   DETECT        find things, zero-shot        open-vocab detector [understanding/detect.py]
@@ -58,7 +60,7 @@ Together: capture → reconstruct → detect → classify → read → fuse → 
 | Camera poses (SfM) | **COLMAP** → `sparse/0/*.bin` | VGGT transformer → COLMAP format | BSD / Apache-2.0 |
 | Splat training | **Brush** (Rust/wgpu — no CUDA toolkit) | gsplat | Apache-2.0 / **Apache-2.0** |
 | Splat validation | `pipeline/validate_splat_ply.py` | — | MIT |
-| Clean + compress | PlayCanvas SuperSplat | — | MIT |
+| Clean + compress | `pipeline/clean_splat.py` → `pipeline/compress_splat.py` (scripted, no GUI) | — | MIT |
 | Detection | open-vocab detector (YOLOE) | — | **AGPL-3.0** (see note) |
 | Classification | transfer-learned model (this repo) | — | MIT |
 | Classifier → ONNX | `understanding/classify/export_onnx.py` | — | MIT |
@@ -70,7 +72,7 @@ Together: capture → reconstruct → detect → classify → read → fuse → 
 | **Orchestrator + eval gate** | `pipeline/run.py`, `pipeline/gate.py` | — | MIT |
 | **Capture app** | `docs/app` — Trove (installable PWA) | — | MIT |
 
-**Deliberate license hygiene:** the reproducible splat lane uses **gsplat (Apache-2.0)**, *not* the original INRIA reference implementation (non-commercial research license) — the wrong base for anything company-facing. The open-vocab detector is **AGPL-3.0** and is isolated in a single file (`understanding/detect.py`) with an SPDX header; a permissive swap (OWLv2 / GroundingDINO, Apache-2.0) is documented. Called out on purpose.
+**Deliberate license hygiene:** the reproducible splat lane uses **gsplat (Apache-2.0)**, *not* the original INRIA reference implementation (non-commercial research license) — the wrong base for anything company-facing. The open-vocab detector is **AGPL-3.0** and is isolated to two SPDX-tagged files (`understanding/detect.py`, `pipeline/mask_foreground.py`); a permissive swap (OWLv2 / GroundingDINO, Apache-2.0) is documented. Called out on purpose.
 
 ## Quickstart
 
@@ -90,7 +92,8 @@ python pipeline/01_extract_frames.py --input data/office/office.mp4 \
     --out data/office/frames --fps 3 --long-edge 1600 --keep 0.85
 
 # 2. poses + splat -- free and headless, no CUDA toolkit and no MSVC required:
-colmap feature_extractor --database_path recon/database.db --image_path recon/images \n    --ImageReader.single_camera 1 --FeatureExtraction.use_gpu 0
+colmap feature_extractor --database_path recon/database.db --image_path recon/images \
+    --ImageReader.single_camera 1 --FeatureExtraction.use_gpu 0
 colmap exhaustive_matcher --database_path recon/database.db --FeatureMatching.use_gpu 0
 colmap mapper --database_path recon/database.db --image_path recon/images --output_path recon/sparse
 brush_app recon --total-steps 15000 --export-path recon/splat
@@ -110,7 +113,10 @@ python understanding/fusion/build_scene.py --sparse data/office/sparse/0 \
 # 5. ask the scene a question (terminal, or --json for an agent)
 python understanding/query.py docs/viewer/assets/scene.json "book"
 
-# 6. compress the PLY in SuperSplat -> docs/viewer/assets/, enable GitHub Pages on /docs. That URL is the demo.
+# 6. clean + compress -- scripted, no GUI needed
+python pipeline/clean_splat.py data/office/office.ply --out data/office/office_clean.ply
+python pipeline/compress_splat.py data/office/office_clean.ply --out docs/viewer/assets/office.sog
+#    then enable GitHub Pages on /docs. That URL is the demo.
 ```
 
 ## Measuring a splat (scene units → real units)
@@ -119,7 +125,7 @@ Structure-from-motion recovers geometry but not size. Move every camera twice as
 
 One known length fixes that scalar for the whole scene. Put something you know the size of in the shot — a tape measure costs nothing and is the surveyor's habit — then in the viewer: **Measure** it, press **Set scale**, and type what it really is. Every measurement after that is in real units, and the calibration rides in the URL (`?scale=`) so a shared link arrives already calibrated.
 
-The accuracy story, plainly: error is set by how precisely you can click the two reference points, and that click error is a fixed fraction of the **reference** length. So a longer reference is proportionally better — the same slop over a 72″ shelf is a third of the error it is over a 24″ tape (0.19% vs 0.57%, measured). Reach for the longest thing in the room you know the size of. The viewer shows the resulting figure next to the scale badge rather than quietly implying that three decimals means three decimals of truth.
+The accuracy story, plainly: error is set by how precisely you can click the two reference points, and that click error is a fixed fraction of the **reference** length. So a longer reference is proportionally better — the same slop over a 72″ shelf is a third of the error it is over a 24″ tape (0.19% vs 0.57%, modelled from pick error; not yet validated against the tape ground truth). Reach for the longest thing in the room you know the size of. The viewer shows the resulting figure next to the scale badge rather than quietly implying that three decimals means three decimals of truth.
 
 This is up-to-scale geometry made metric by a reference, not a survey instrument. It does not make a splat survey-grade; it makes it dimensioned.
 
@@ -139,7 +145,7 @@ The GitHub Pages copy can't import — a secure page may not POST to a plain-HTT
 
 ## Quality
 
-`pytest` unit tests cover the pure logic (frame sharpness, splat-PLY validation, COLMAP IO + projection, semantic fusion on a synthetic scene, dataset splitting, query scoring, the orchestrator's stage planning, the eval gate, capture QA, asset encryption, and spine→title matching). `ruff` lints. Both run on every push via GitHub Actions.
+`pytest` unit tests cover the pure logic (frame sharpness, splat-PLY validation, COLMAP IO + projection, semantic fusion on a synthetic scene, dataset splitting, query scoring, the orchestrator's stage planning, the eval gate, capture QA, asset encryption, and spine→title matching). `ruff` lints. Both run on every push via GitHub Actions once published; verified locally (59/59 tests, ruff clean).
 
 Two gates, at opposite ends. `pipeline/rate_capture.py` grades the capture *before* reconstruction — a capture that won't reconstruct is cheap to reject and expensive to discover after 90 minutes of GPU time. `pipeline/gate.py` blocks *publishing* a scene whose reconstruction/classifier/OCR metrics miss threshold.
 

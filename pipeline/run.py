@@ -4,7 +4,7 @@
 
 Runs the automatable stages -- frame extraction -> detection -> semantic fusion ->
 publish -- from a YAML config, skipping stages whose outputs already exist
-(resumable; use --force to re-run). Splat training itself (Postshot, or VGGT+gsplat)
+(resumable; use --force to re-run). Splat training itself (Brush, or VGGT+gsplat)
 is a separate step: point the config at its outputs (sparse poses + trained splat).
 
 config.yaml:

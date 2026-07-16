@@ -29,7 +29,7 @@ to the camera. A fact-check pass caught an earlier draft of this very table sett
 | colour drift (raw) | 18-23% | 4.9-23.2% |
 | soft frames | 4-11% | **0-3%** |
 | overlap | 92-94% | 92-98% |
-| verdict | **rejected** | **passed 9/9** (against the *corrected* gate — see §3; the original gate failed all nine) |
+| verdict | **rejected** | **cleared — zero blockers** (9/9 MARGINAL, advisory warnings only, against the *corrected* gate — see §3; the original gate returned 6 RESHOOT + 3 MARGINAL) |
 
 The honest gap is 3-8x on the detrended figure, not 40x. It is still decisive, and it is
 still entirely the camera: take 1's framing and pace were fine — 92-94% overlap, only
@@ -53,7 +53,7 @@ Two captures of the same bookshelf pair (ground truth 70-7/8" x 69-7/8", tape), 
 
 **Take 1 — stock iOS Camera, auto everything.** Rejected. Frame brightness swung 92% and 106% across the takes, and it *oscillated*: the meter hunted. White balance drifted 18-23%. The rest of the numbers matter: sharpness was fine (4-11% soft frames), overlap 92-94%. The operator did the job correctly. The camera lost it.
 
-**Take 2 — manual camera app, 4K/24 HEVC ~36 Mbps, shutter 1/120 + ISO 1250 + WB 2930K + focus all locked, Rec.709, stabilisation off, recorded to Files.** Passed 9/9 clips. Sharpness median 402-1189, soft frames 0-3%, overlap 92-98%, exposure wobble 2.2-6.2%.
+**Take 2 — manual camera app, 4K/24 HEVC ~36 Mbps, shutter 1/120 + ISO 1250 + WB 2930K + focus all locked, Rec.709, stabilisation off, recorded to Files.** Cleared the gate with zero blockers — 9/9 MARGINAL, advisory warnings only. Sharpness median 402-1189, soft frames 0-3%, overlap 92-98%, exposure wobble 2.2-6.2%.
 
 Same hands, same shelf, same light. The delta is the lock.
 
@@ -75,7 +75,7 @@ Name the folklore: camera blogs widely claim "1/240 is flicker-free at 60 Hz." I
 
 ### ISO: take the noise
 
-Locking shutter at 1/120 indoors forces ISO up; Take 2 sat at ISO 1250 and still returned sharpness medians of 402-1189, 0-3% soft frames, 9/9 pass. High ISO did not prevent a pass. The trade is deliberate and asymmetric: noise degrades gracefully, blur does not. Severe blur renders COLMAP feature matching ineffective outright, and poses recovered from blurred images are "significantly biased." Noise is not free — detectors suffer spurious detections under moderate noise — but it is far cheaper. Buy flicker immunity and motion freezing; pay in grain.
+Locking shutter at 1/120 indoors forces ISO up; Take 2 sat at ISO 1250 and still returned sharpness medians of 402-1189, 0-3% soft frames, 9/9 clear (all MARGINAL, advisory warnings only). High ISO did not prevent a pass. The trade is deliberate and asymmetric: noise degrades gracefully, blur does not. Severe blur renders COLMAP feature matching ineffective outright, and poses recovered from blurred images are "significantly biased." Noise is not free — detectors suffer spurious detections under moderate noise — but it is far cheaper. Buy flicker immunity and motion freezing; pay in grain.
 
 ### The torch is a trap
 
@@ -131,7 +131,7 @@ Three routes exist, and their error budgets differ by three orders of magnitude.
 - **IMU dead-reckoning: worse.** A 0.1° tilt error leaks `g·sin θ` into horizontal acceleration and double-integrates to ~123 m of position error over a 2-minute capture.
 - **ARKit VIO: real, but not superior.** Measured here at 0.14–1.47% relative ATE over handheld 47–164 s sequences. A tape-and-click reference measures 0.2–0.6%. **ARKit ties the tape; it does not beat it.** Scaniverse's point-cloud export was verified metric on this machine (bbox 1.52 × 2.40 × 0.61 m, plausible real metres), so the VIO route works — it just doesn't earn a precision upgrade.
 
-The governing insight is that **scale error is bounded by pick precision on the reference, not on the thing you are measuring**. The scalar is a ratio: known length over picked length. The same few-pixel slop in clicking two endpoints is a fixed absolute error, so it divides by the reference's length. **Measured in this project:** identical slop yields 0.57% over a 24″ tape and 0.19% over the 70-7/8″ shelf (ground truth 70-7/8″ × 69-7/8″, tape-verified self-consistent: 35-1/4 + 3/8 + 35-1/4 = 70-7/8 exactly). Reach for the longest known length in the room. A 3× longer reference is a 3× smaller error, for free, with no better equipment.
+The governing insight is that **scale error is bounded by pick precision on the reference, not on the thing you are measuring**. The scalar is a ratio: known length over picked length. The same few-pixel slop in clicking two endpoints is a fixed absolute error, so it divides by the reference's length. **Modelled in this project, not yet validated by a real measurement:** identical slop yields 0.57% over a 24″ tape and 0.19% over the 70-7/8″ shelf — figures from a pick-error model, not a measured scale check (ground truth 70-7/8″ × 69-7/8″, tape-verified self-consistent: 35-1/4 + 3/8 + 35-1/4 = 70-7/8 exactly). Reach for the longest known length in the room. A 3× longer reference is a 3× smaller error, for free, with no better equipment.
 
 ### Why a printed target beats a tape measure
 
@@ -155,7 +155,7 @@ Measured in this project. Take 1 was stock iOS Camera, auto everything: frame br
 
 Take 2 fixed the instrument at the source: locked shutter 1/120, ISO 1250, WB 2930K, locked focus, stabilisation off. Nine clips, sharpness medians 402–1189, soft frames 0–3%, overlap 92–98%.
 
-Our gate failed all nine, flagging 15–59% "exposure drift". The gate was wrong. One flagged take ramped luma 69→127 monotonically, with a straight line explaining 94% of the variance. That is not a camera hunting; that is a room getting brighter as the operator walks. The gate had measured the scene and blamed the camera.
+Our gate returned 6 RESHOOT and 3 MARGINAL on the nine, flagging 13.1–58.9% "exposure drift". The gate was wrong. One flagged take ramped luma 69→127 monotonically, with a straight line explaining 94% of the variance. That is not a camera hunting; that is a room getting brighter as the operator walks. The gate had measured the scene and blamed the camera.
 
 ### Shape, not size
 
@@ -207,7 +207,7 @@ Note the distinction that trips people: **a permissive licence is not a portable
 
 3DGS does not do Structure-from-Motion. The paper's method begins "starting from sparse points produced during camera calibration" [6] — that initialisation is an input, not something the trainer derives. The reference implementation instructs users to "install a recent version of COLMAP (ideally CUDA-powered)" to prepare custom scenes [2], and Brush takes COLMAP data as a primary input format [3]. So COLMAP — or any pose estimator that emits COLMAP-format output — is load-bearing upstream of every trainer here. It produces the sparse cloud plus per-image intrinsics and extrinsics [1]; the splat is optimised *into* that camera frame. Bad poses do not produce a blurry splat, they produce a wrong one, and no amount of training iterations recovers them.
 
-SfM is also **scale-free**: it recovers geometry up to an unknown similarity transform. Metric scale must come from outside. Measured in this project, the phone's own metadata cannot supply it — a real iPhone clip self-reported `LocationAccuracyHorizontal = 19.785 m` against a 1.803 m subject, ~1000x too coarse, and iOS writes only one static GPS point per clip. A tape-and-click reference on the longest available baseline is the working answer (measured: 0.19% scale error over a 71" shelf vs 0.57% over a 24" tape — longest baseline wins). Separately, a Scaniverse point-cloud export was verified metric on this machine (bbox 1.52 x 2.40 x 0.61 m, plausible real metres), which is an alternative scale source but was not cross-checked against the tape.
+SfM is also **scale-free**: it recovers geometry up to an unknown similarity transform. Metric scale must come from outside. Measured in this project, the phone's own metadata cannot supply it — a real iPhone clip self-reported `LocationAccuracyHorizontal = 19.785 m` against a 1.803 m subject, ~1000x too coarse, and iOS writes only one static GPS point per clip. A tape-and-click reference on the longest available baseline is the working answer (modelled from pick error, not yet validated by a real measurement: 0.19% scale error over a 71" shelf vs 0.57% over a 24" tape — longest baseline wins). Separately, a Scaniverse point-cloud export was verified metric on this machine (bbox 1.52 x 2.40 x 0.61 m, plausible real metres), which is an alternative scale source but was not cross-checked against the tape.
 
 ### What 3DGS optimises, versus the alternatives
 
@@ -233,7 +233,7 @@ The same discipline applies to any detector bolted on downstream. Ultralytics YO
 
 Measured in this project, and the most easily-missed failure in the chain: **the iOS Photos picker re-encodes on upload.** A 4K60 HEVC take arrived as **4K30 H.264 at ~24.5 Mbps** — half the frames silently gone, before COLMAP ever saw a pixel. You lose baseline coverage and gain compression artefacts on exactly the high-frequency texture SfM feeds on.
 
-The fix is procedural, not technical: **record to Files and import from Files.** Take 2 in this project did so and passed 9/9 clips (4K/24 HEVC ~36 Mbps).
+The fix is procedural, not technical: **record to Files and import from Files.** Take 2 in this project did so and cleared the gate 9/9 (all MARGINAL, advisory warnings only; 4K/24 HEVC ~36 Mbps).
 
 The mechanism is *probably* `PHPickerConfiguration.preferredAssetRepresentationMode`, where the default permits transcoding and `.current` avoids it when the receiving app handles arbitrary formats [10]. Flagged **REPORTED**, not verified: [10] is an Apple Developer Forums thread, we could not retrieve the API reference body, and we never confirmed that this setting governs the observed re-encode. **The behaviour is measured; the cause is not.** Apple separately documents a Settings > Photos > "Transfer to Mac or PC" Automatic/Keep Originals control for USB transfer — a *different* mechanism, and conflating the two is folklore.
 
@@ -424,7 +424,7 @@ Retrieved 2026-07-15 unless noted.
 
 - https://colmap.github.io/faq.html — retrieved 2026-07-15 — negative result: contains neither the GPU-favourable quote nor the sequential-matching quote attributed to '[1]' in Section 4.
 
-- https://github.com/colmap/colmap/releases — retrieved 2026-07-15 — establishes latest COLMAP releases are 3.13.0 (2025-11-07), 3.12 (2025-06-30), 3.11 (2024-11-28); no 4.1 release exists.
+- https://github.com/colmap/colmap/releases — retrieved 2026-07-15 — the checker's claim, kept as-found: latest releases are 3.13.0 (2025-11-07), 3.12 (2025-06-30), 3.11 (2024-11-28); "no 4.1 release exists". STALE — see "What we got wrong": rechecked directly, the GitHub API returns tag 4.1.0 (prerelease=false, published 2026-06-26) and the installed binary prints `COLMAP 4.1.0`.
 
 - https://colmap.github.io/legacy.html — retrieved 2026-07-15 — shows the docs site building as 'COLMAP 4.1.0.dev0 | 43dd3bb2 (2026-03-16)', i.e. 4.1 is a main-branch dev version string, not a release.
 

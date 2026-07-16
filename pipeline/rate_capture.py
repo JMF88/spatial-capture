@@ -30,8 +30,8 @@ Reads the frames stage 1 produced and reports, per capture:
   clipping     blown / crushed pixels. Windows and bare bulbs become floaters.
 
 MEASURE THE CAMERA, NOT THE ROOM. This gate's first real use failed a good capture:
-nine correctly-locked takes came back RESHOOT for 15-59% "exposure drift". They were
-fine. Frame brightness moves both when a meter re-meters AND when a locked camera
+of nine correctly-locked takes, six came back RESHOOT and three MARGINAL for
+13.1-58.9% "exposure drift". They were fine. Frame brightness moves both when a meter re-meters AND when a locked camera
 walks past a lamp -- and since the advice is to LOCK exposure, the second is
 guaranteed. The gate was flagging the behaviour it asks for. What separates them is
 shape, not size: a meter fighting itself oscillates; a room's brightness is smooth in

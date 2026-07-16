@@ -80,7 +80,7 @@ about which is which signals you actually understand the field.
   confirmed the call (see §8). Then it **failed a good capture**, which taught it more.
 
 #### The lesson: measure the camera, not the room
-Nine correctly-locked takes came back RESHOOT for 15–59% "exposure drift". They were fine.
+Of nine correctly-locked takes, six came back RESHOOT and three MARGINAL for 13.1–58.9% "exposure drift". They were fine.
 Frame-mean brightness moves for two unrelated reasons:
 
 | | behaves like |
@@ -114,14 +114,18 @@ cannot:** fit a smooth trend, measure the residual. On one shelf, same subject:
 - **What:** recover each camera's intrinsics + pose and a sparse point cloud from
   the frames. This is the classic photogrammetry step.
 - **Choices & tradeoffs:**
-  - **Jawset Postshot (default engine).** Built-in SfM + splat training in one
-    Windows app — no COLMAP/CUDA-build. Reliable; the demo runs on it.
+  - **COLMAP (default).** The gold-standard incremental solver. On the gate-passing
+    capture it registered **354/354 frames** at **0.810 px mean reprojection error**.
+    The default trainer (Brush, stage 4) does no SfM of its own, so COLMAP is
+    mandatory upstream — and it emits the binary sparse model that semantic fusion
+    (stage 9) consumes natively. GLOMAP's global solver ships inside COLMAP ≥ 4.1.
   - **VGGT (open lane).** A feed-forward *transformer* (CVPR 2025) that infers
     poses + geometry in seconds instead of iterative solving — the "AI-aligned"
     headline: we replaced 20-year-old geometric SfM with a learned model. Exports
     COLMAP format for the trainer. (`pipeline/02_poses_vggt.py`.)
-  - **COLMAP / GLOMAP (classical fallback).** The gold-standard incremental /
-    global solvers; slower but rock-solid — proves the fundamentals.
+  - **Jawset Postshot (GUI alternative).** SfM + splat training in one Windows app,
+    but the free tier cannot export the trained splat, and its pose export is COLMAP
+    *text* (needs a bin conversion before fusion). Kept only as a poses fallback.
 - **Failure modes:** low-texture or repetitive scenes fail to register; VGGT can
   drift or mis-scale on room-scale scenes (keep COLMAP as the always-works path).
 - **Scale:** pose is the pipeline's reliability fulcrum. In production you'd gate
@@ -139,6 +143,10 @@ cannot:** fit a smooth trend, measure the residual. On one shelf, same subject:
   clones/splits Gaussians where detail is missing ("densify") and prunes weak/oversized
   ones — so the "model" literally grows into the scene.
 - **Choices & tradeoffs:**
+  - **Brush (Apache-2.0, default trainer).** Rust/wgpu — no CUDA toolkit to build.
+    On the gate-passing capture: **1,342,519 Gaussians in 8.8 min**, cleaned to
+    1,019,159 (75.9% kept), compressed to a **9.5 MB SOG** that renders in the
+    repo's own viewer. Consumes COLMAP output; does no SfM of its own.
   - **gsplat (Apache-2.0)** for the open lane — permissive, scriptable, the correct
     base for anything company-facing.
   - **Not** the INRIA reference implementation — its license is non-commercial
@@ -171,7 +179,8 @@ cannot:** fit a smooth trend, measure the residual. On one shelf, same subject:
   link stays calibrated. Uncalibrated readings say "scene units" rather than implying a
   precision that isn't there, and the viewer reports its own error: accuracy is bounded
   by the pick precision on the *reference*, so the same slop is 0.57% over a 24″ tape and
-  0.19% over a 72″ shelf — reach for the longest reference in the room. Dimensioned, not
+  0.19% over a 72″ shelf — figures modelled from pick error, not yet validated against a
+  real measurement; reach for the longest reference in the room. Dimensioned, not
   survey-grade, and it says so.
 - **No runtime third-party dependency.** three + spark are vendored into
   `docs/viewer/vendor/` at recorded hashes rather than pulled from a CDN. This was not
@@ -231,7 +240,11 @@ cannot:** fit a smooth trend, measure the residual. On one shelf, same subject:
   So the causal chain is: drifting auto-exposure → soft frames → OCR character errors →
   zero retrieval → zero matches. Every downstream stage independently confirmed the gate.
   **This stage is proven on clean input and unproven at shelf scale.** It is not claimed
-  to resolve titles until it does so on a capture the gate accepts.
+  to resolve titles until it does so on a capture the gate accepts. On the capture the
+  gate did accept, reads are legible and retrieval matched 4 titles (2 verified real,
+  best score 0.870), with the remaining misses dominated by query construction — one
+  garbled token zeroes the keyword search — not read legibility; per-title identity is
+  still work in progress.
 - **Failure modes:** rotated text (rotate the crop both ways, keep the higher-confidence
   read), stylized fonts, glare, and — dominant in practice — capture quality upstream.
   Lookup needs a decent title string, and retrieval is the wall long before scoring is.
@@ -283,8 +296,8 @@ cannot:** fit a smooth trend, measure the residual. On one shelf, same subject:
   external on purpose; the config points at its outputs.
 - **Eval gate:** publishing is blocked when reconstruction PSNR/SSIM, classifier macro-F1, or
   OCR CER miss threshold. A missing metric is reported, never silently passed.
-- **Tests + CI:** the pure logic is unit-tested and linted on every push; heavy (torch/GPU)
-  tests are marked and skipped in the light CI. That's why `splits.py` exists apart from
+- **Tests + CI:** the pure logic is unit-tested and linted — green locally, and on every push
+  once the repo is published; heavy (torch/GPU) tests are marked and skipped in the light CI. That's why `splits.py` exists apart from
   `common.py` — so the split logic is testable without the ML stack.
 - **Why it matters:** the demo proves the capability; this layer answers "how would a team run
   this without you." And the thing that actually needs to scale isn't compute — it's capture,
@@ -301,12 +314,13 @@ person and a bad capture.
 ## License hygiene (a feature, said out loud)
 
 The repo is **MIT**. Deliberate, not incidental:
-- The reproducible splat lane uses **gsplat (Apache-2.0)**, *not* the INRIA reference
+- The splat lane uses **Brush and gsplat (both Apache-2.0)**, *not* the INRIA reference
   (non-commercial research license) — the wrong base for anything a company would ship.
-- The open-vocab detector (`detect.py`) is **AGPL-3.0** (Ultralytics/YOLOE). AGPL treats
-  hosted/network use as distribution, so it's isolated in a single file with an SPDX
-  header; the documented permissive swap is **OWLv2** or **GroundingDINO + SAM2**
-  (Apache-2.0). Nothing else imports it.
+- The Ultralytics stack (YOLOE, its SAM2 wrapper) is **AGPL-3.0**. AGPL treats
+  hosted/network use as distribution, so it is confined to exactly two files, each
+  carrying an SPDX header: `understanding/detect.py` (open-vocab detection) and
+  `pipeline/mask_foreground.py` (foreground matting). Nothing else imports it; the
+  documented permissive swap is **OWLv2** or **GroundingDINO + SAM2** (Apache-2.0).
 
 Saying this unprompted demonstrates exactly the cost/license/security discipline a
 security-conscious team wants to see — it's free credibility, not a footnote.

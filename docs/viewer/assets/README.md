@@ -9,6 +9,6 @@ it as a query param:
 Supported: `.ply` / `.splat` / `.spz` / `.sog` / `.ksplat`.
 
 Keep it small for fast mobile load — target **< 10-15 MB** and **< ~1.5 M Gaussians**.
-Raw 3DGS `.ply` is 250-290 MB; compress it in SuperSplat (superspl.at/editor) to
-`.spz` (object/bookshelf) or `.sog` (whole-office enclosure) first. See
-`../../../pipeline/README.md` -> "Export + host".
+Raw 3DGS `.ply` is ~300 MB (the first real export: 302 MB); run it through
+`pipeline/clean_splat.py` then `pipeline/compress_splat.py` (emits `.sog`) first —
+scripted, no GUI. See `../../../pipeline/README.md` -> "Compress + host (web)".

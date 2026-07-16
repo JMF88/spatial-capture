@@ -64,10 +64,10 @@ is to stop the phone from silently re-deciding exposure, color, or focus.
 | **Exposure (AE)** | **Locked** on a mid-tone. | Auto-exposure flicker makes one surface a different brightness frame to frame — confuses pose estimation, produces color-inconsistent, floaty splats. |
 | **White balance** | **Locked** to a fixed Kelvin. | A wall must be one color across the whole capture. |
 | **Focus** | **Locked** at your working distance. | Kills focus-hunting mid-walk. For enclosures, lock at a mid-room distance. |
-| **Shutter** | **Fast — 1/120 s or faster** (1/250 if light allows). | The single biggest defense against motion blur. Raise ISO or add light to afford it. |
+| **Shutter** | **1/120 s** (1/60 if light is short) — never 1/250. | The single biggest defense against motion blur, and flicker-safe: LEDs pulse at 120 Hz, so only exposures spanning whole 8.33 ms cycles avoid banding — 1/120 (1 cycle), 1/60 (2). 1/250 is 0.48 cycles and bands. Raise ISO or add light to afford it. |
 | **ISO** | As low as the fast shutter permits. | Noise also degrades feature matching; trade toward light, not ISO. |
 | **Lens** | **Lock to the main (1x) lens.** Disable auto lens switching. | Phones silently swap to ultra-wide in tight spaces; a mid-capture focal-length change corrupts the camera model. |
-| **Resolution / fps** | **4K/60**, or steady **4K/30**. | 4K for detail; 60 fps for more candidate frames and shorter per-frame exposure. |
+| **Resolution / fps** | **4K/24-30.** | 4K for detail. Frame rate is not shutter: fps only caps the slowest allowed exposure, and frames are decimated to ~3 fps downstream, so 60 fps buys no usable frames — it just doubles the file. The proven capture ran 4K/24. |
 | **Stabilization** | On is OK; **off is purer** with a gimbal. | Aggressive digital stabilization warps frame geometry slightly. |
 | **HDR / cinematic / filters** | **Off.** | They remap tones per frame and destroy photometric consistency. |
 
@@ -163,8 +163,8 @@ subsamples for coverage and culls for sharpness down to the 150-300 band.
 - [ ] White balance locked (fixed Kelvin)
 - [ ] Focus locked at working distance
 - [ ] Lens locked to 1x main; auto lens-switching disabled
-- [ ] Shutter 1/120 s or faster; ISO as low as light allows
-- [ ] 4K/60 (or steady 4K/30)
+- [ ] Shutter 1/120 s (or 1/60 — never 1/250); ISO as low as light allows
+- [ ] 4K/24-30
 - [ ] Lights on, bright and diffuse; no hard shadows/hotspots
 - [ ] Screens off, blinds closed, mirrors draped
 - [ ] Blank walls have a nearby texture anchor

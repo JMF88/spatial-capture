@@ -9,10 +9,10 @@ to end with no CUDA toolkit and no human step:
 
 | stage | result |
 |---|---|
-| COLMAP 3.12.6 (CPU) | **354/354 frames registered**, 0.810 px reprojection error, 128,877 points |
+| COLMAP 4.1.0 (CPU) | **354/354 frames registered**, 0.810 px reprojection error, 128,877 points |
 | Brush (Rust/wgpu, no CUDA toolkit) | 1,342,519 Gaussians in 8.8 min |
 | `clean_splat.py` | 1,019,159 kept (75.9%); bbox 74.8x62.0x67.9 -> 9.22x10.15x2.53 |
-| `compress_splat.py` | **9.5 MB SOG**, 31.8x smaller, visually indistinguishable |
+| `compress_splat.py` | **9.5 MB SOG**, 31.8x smaller than the raw 302 MB export, visually indistinguishable |
 
 A 100% registration rate is what a disciplined capture buys you (locked exposure/focus/WB
 — see `docs/PRACTICE.md`), and it is the number to check first when a scene looks wrong.
@@ -28,6 +28,17 @@ python 01_extract_frames.py --input <video> --out data/<scene>/images --long-edg
 For the VGGT open lane use `--long-edge 1024` (VGGT exports intrinsics at 1024 px;
 a mismatch silently corrupts the reconstruction).
 
+## Stage 1b — foreground masking (optional; wall-flush / low-parallax captures)
+
+When every camera stares at an object from a narrow cone (an object against a wall in a
+tight room), the background and near-field air never triangulate and 3DGS fills them
+with fog no post-hoc cull removes. `mask_foreground.py` deletes the background from the
+input instead: YOLOE proposes boxes for the subject, SAM2 segments each box, the union
+becomes an alpha matte (RGBA PNG out, background zeroed). Train with Brush
+`--match-alpha-weight 0.1`. Measured trade: kills the haze, softens the subject
+slightly — compare against an unmasked train before adopting. AGPL-3.0 (same isolation
+rule as `understanding/detect.py`).
+
 ## Pose + train
 
 ### Default lane — COLMAP -> Brush (proven on real data; no GUI, no CUDA toolkit, free)
@@ -36,7 +47,7 @@ COLMAP for poses (see the COLMAP section below), then Brush to train. Brush is R
 the whole reason this lane beat the GUI one. It consumes COLMAP or Nerfstudio data and
 does no SfM of its own, so COLMAP is mandatory upstream.
 ```
-brush --source data/<scene> --export-path data/<scene>/recon/splat   # writes export_<step>.ply
+brush_app data/<scene> --total-steps 15000 --export-path data/<scene>/recon/splat   # writes export_<step>.ply
 python validate_splat_ply.py data/<scene>/recon/splat/export_15000.ply
 ```
 Expect `OK: valid 3DGS splat PLY`. Then clean and compress (below) — do not skip either.
@@ -55,8 +66,8 @@ the one compiled dependency (try a prebuilt wheel first — see `03` header).
 python 02_poses_vggt.py  --scene-dir data/shelf --vggt-repo ../vggt-low-vram
 python 03_train_gsplat.py --data-dir data/shelf --gsplat-examples ../gsplat/examples --result-dir out/shelf
 ```
-Keep it OFF the demo critical path: if the CUDA build fights you, train in Postshot
-and present this lane as the open/reproducible version with a recorded run.
+Keep it OFF the demo critical path: if the CUDA build fights you, train with Brush
+(the default lane) and present this one as a recorded-run comparison.
 
 ### COLMAP / GLOMAP — not a fallback. The path.
 
