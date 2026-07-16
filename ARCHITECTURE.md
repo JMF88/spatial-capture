@@ -67,6 +67,49 @@ about which is which signals you actually understand the field.
 - **Scale:** add per-frame coverage/overlap scoring and adaptive sampling; this is
   a cheap, deterministic, testable stage — a good candidate for CI.
 
+### 2b. Capture QA — `pipeline/rate_capture.py` (measure first, spend later)
+- **What:** grade the extracted frames — sharpness, frame-to-frame overlap, exposure,
+  colour, mains flicker, clipping — and return **GO / MARGINAL / RESHOOT** *before* the
+  30–90 minutes of splat training.
+- **Why this way:** reconstruction is the expensive step and it fails for reasons already
+  visible in the frames. Every one of them is cheap to measure and impossible to fix
+  afterwards, when the trainer's time and the chance to reshoot are both gone. This is the
+  cost argument in one file: the cheapest GPU-hour is the one you don't spend.
+- **It has earned its keep twice, in opposite directions.** It rejected a real capture for
+  92% exposure swing before any GPU time — and every downstream stage independently
+  confirmed the call (see §8). Then it **failed a good capture**, which taught it more.
+
+#### The lesson: measure the camera, not the room
+Nine correctly-locked takes came back RESHOOT for 15–59% "exposure drift". They were fine.
+Frame-mean brightness moves for two unrelated reasons:
+
+| | behaves like |
+|---|---|
+| a meter re-metering | **oscillates** — chases content, overshoots, corrects |
+| a locked camera walking past a lamp | **ramps** — smooth, because a room's brightness is a smooth function of where you stand |
+
+Spread cannot tell them apart, and since the advice is to *lock* exposure, the ramp is
+**guaranteed**. The gate was flagging the behaviour it asks for — the worst failure a gate
+can have, because it sends someone to reshoot correct work. **Shape separates what size
+cannot:** fit a smooth trend, measure the residual. On one shelf, same subject:
+
+    auto-exposure  : 18.0%, 16.1%      <- chatter
+    locked exposure: 2.2% - 6.2%       <- scene only
+
+- **Failure modes, named:** sharpness is inflated by sensor noise (grain reads as detail),
+  so it flatters a high-ISO take. Overlap saturates below 50% and over-reports exactly
+  where a capture is worst. A perfectly *graceful* AE drift hides in the trend and reads
+  clean — this catches meters that chatter, which is what meters do.
+- **What it refuses to do:** colour is reported and **never blocks**. A subject's colour
+  does not vary smoothly with position (white robot → wood → beige wall), so detrending
+  isolates nothing, and on real data the distributions overlap outright — auto-WB takes at
+  3.5%/4.5% against *locked* takes at 3.7% and 4.2%. No threshold exists. Reporting a
+  number you cannot act on is honest; gating on a coin flip is not.
+- **Scale:** thresholds here are calibrated on one room and two lighting states. That is a
+  data point, not a calibration — widen it before trusting it on a client's site. The
+  productised version of this is not a better metric, it's the **capture SOP and operator
+  training** the metric implies (see the Horizon note in `ROADMAP.md`).
+
 ### 3. Camera poses — structure-from-motion (SfM)
 - **What:** recover each camera's intrinsics + pose and a sparse point cloud from
   the frames. This is the classic photogrammetry step.

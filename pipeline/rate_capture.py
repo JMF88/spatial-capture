@@ -13,19 +13,35 @@ discovering it after the trainer and a reshoot are both gone.
 Reads the frames stage 1 produced and reports, per capture:
 
   sharpness    variance-of-Laplacian, absolute + relative. Catches motion blur.
-  exposure     mean luma drift across frames. Catches an unlocked AE (or a
-               phone quietly re-metering as you pan past a window).
-  white bal.   R/G and B/G drift. Catches an unlocked AWB -- the one stock iOS
-               will not let you lock, so this is the one to actually watch.
+               BLOCKS. Caveat: inflated by sensor noise, which reads as detail --
+               trust it less on a high-ISO take.
+  overlap      phase-correlation shift between consecutive frames -> what
+               fraction of the view they share. Too little and SfM has nothing to
+               match on; too much just means you walked slowly, which is free.
+               BLOCKS. Saturates below 50% -- see phase_shift.
+  exposure     the frame-mean spread (`drift`) is CONTEXT, not a defect. The
+               blocker is `wobble`: the spread left after removing a smooth trend.
+               See exposure/detrended_wobble below.
+  white bal.   ADVISORY ONLY, never blocks. Frame statistics cannot separate a
+               hunting AWB from a subject that is a different colour over there,
+               and on real data the two overlap outright.
   flicker      frame-to-frame luma oscillation. Catches mains-frequency banding
                from LED/fluorescent light beating against a fast shutter.
-  overlap      phase-correlation shift between consecutive frames -> what
-               fraction of the view they share. Too little and SfM has nothing
-               to match on; too much just means you walked slowly, which is free.
   clipping     blown / crushed pixels. Windows and bare bulbs become floaters.
 
-Verdict is GO / MARGINAL / RESHOOT, with the reasons named. It is advisory: it
-cannot see coverage holes or whether you closed the loop, and it says so.
+MEASURE THE CAMERA, NOT THE ROOM. This gate's first real use failed a good capture:
+nine correctly-locked takes came back RESHOOT for 15-59% "exposure drift". They were
+fine. Frame brightness moves both when a meter re-meters AND when a locked camera
+walks past a lamp -- and since the advice is to LOCK exposure, the second is
+guaranteed. The gate was flagging the behaviour it asks for. What separates them is
+shape, not size: a meter fighting itself oscillates; a room's brightness is smooth in
+where you stand. Hence `wobble` (detrended residual) as the blocker, with the raw
+spread demoted to context. Colour has the same flaw and no equivalent cure, because a
+subject's colour does NOT vary smoothly with position -- so it reports and never gates.
+
+Verdict is GO / MARGINAL / RESHOOT, with the reasons named. It is advisory throughout:
+it grades frames, not whether you photographed the subject. It cannot see coverage
+holes or whether you closed the loop, and it says so.
 
 Usage:
     python pipeline/rate_capture.py --frames data/shelf/frames

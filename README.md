@@ -2,7 +2,7 @@
 
 Capture a real enclosed space with a phone, reconstruct it as a **browser-viewable 3D Gaussian splat**, **understand what's in it**, and **ask it questions**. A reproducible, Windows-native pipeline that runs on a single consumer GPU.
 
-> **Status:** the pipeline is built and tested end to end — reconstruction, understanding, semantic fusion, a queryable viewer, an orchestrator + eval gate, a test suite/CI, and a mobile capture app. Every stage has been exercised on synthetic or sample data; **the first real capture hasn't been shot yet**, so there's no demo link and the collection ships empty. Nothing in this repo is illustrative — when a scene appears, it's a real one. Built and tested on Windows 11 with an RTX 4070 Laptop (8 GB VRAM).
+> **Status:** the pipeline is built and tested end to end — reconstruction, understanding, semantic fusion, a queryable viewer with metric calibration, an orchestrator + two eval gates, a test suite/CI, and a mobile capture app. **The first real capture has been shot and cleared the gate** (9 passes, 4K, locked exposure); the splat itself isn't trained yet, so there's no demo link and the collection ships empty. Nothing in this repo is illustrative — when a scene appears, it's a real one. Built and tested on Windows 11 with an RTX 4070 Laptop (8 GB VRAM).
 
 **Live demo:** _(coming — a GitHub Pages URL you open on any phone or laptop and orbit around)_
 
@@ -137,7 +137,9 @@ The GitHub Pages copy can't import — a secure page may not POST to a plain-HTT
 
 `pytest` unit tests cover the pure logic (frame sharpness, splat-PLY validation, COLMAP IO + projection, semantic fusion on a synthetic scene, dataset splitting, query scoring, the orchestrator's stage planning, the eval gate, capture QA, asset encryption, and spine→title matching). `ruff` lints. Both run on every push via GitHub Actions.
 
-Two gates, at opposite ends. `pipeline/rate_capture.py` grades the capture *before* reconstruction — a capture that won't reconstruct is cheap to reject and expensive to discover after 90 minutes of GPU time. `pipeline/gate.py` blocks *publishing* a scene whose reconstruction/classifier/OCR metrics miss threshold. Several tests are built from real failures rather than invented ones: the reads that a real shelf produced, and the false positive one of them caused.
+Two gates, at opposite ends. `pipeline/rate_capture.py` grades the capture *before* reconstruction — a capture that won't reconstruct is cheap to reject and expensive to discover after 90 minutes of GPU time. `pipeline/gate.py` blocks *publishing* a scene whose reconstruction/classifier/OCR metrics miss threshold.
+
+Several tests are built from real failures rather than invented ones — including the capture gate's own. It rejected a real capture for a 92% exposure swing, and every downstream stage independently confirmed the call. Then it **failed nine good captures**, because frame-mean brightness cannot distinguish a meter re-metering from a locked camera walking past a lamp — and locking the exposure is the advice, so the ramp it flagged was guaranteed. It now measures the *shape* of the change rather than the size, and colour was demoted to advisory outright because no threshold separates a hunting white balance from a subject that is simply a different colour. A gate that fails good work is worse than no gate; the tests encode both directions. See [`ARCHITECTURE.md`](ARCHITECTURE.md) §2b.
 
 ```bash
 pytest -m "not heavy" -q     # light, no torch
