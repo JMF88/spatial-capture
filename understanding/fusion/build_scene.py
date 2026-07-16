@@ -14,6 +14,9 @@ scene.json schema (matches docs/viewer/index.html):
   { "version":1, "splat":"./assets/scene.ply",
     "objects":[ {"id","label","category","keywords","position":[x,y,z],
                  "aabb":{"min","max"},"confidence","source":{"frames","support"}} ] }
+Optional, additive (only when --titles is given and a member spine matched):
+  "title" (matched book title), "text" (the OCR read behind the match); the
+  title's tokens are also appended to "keywords" so search finds the book.
 
 Example:
   python understanding/fusion/build_scene.py \
@@ -58,6 +61,41 @@ def lift_detection(camera, image, xyz, box, min_points=4):
     return np.median(xyz[inside], axis=0), n
 
 
+def attach_titles(detections, title_records, min_score=0.45, label="book"):
+    """Annotate detections in place with d['title_match'] from ocr_titles.py output.
+
+    titles.json keys crops as '<image stem>#<idx>' where idx counts only the
+    label-matched ('book') boxes of that image, in file order (see
+    ocr_titles.iter_crops_detections). Reproduce that count here to join.
+    Caveat: ocr_titles also drops crops that clamp below 4 px, which would shift
+    later indices for that image; that needs image dims we don't load here, so
+    verify counts line up (they do for every capture so far: one record per box).
+    Only matches with score >= min_score attach. Returns #attached.
+    """
+    by_source = {}
+    for r in title_records:
+        m = r.get("match")
+        if m and m.get("title") and float(m.get("score") or 0) >= min_score:
+            by_source[r["source"]] = {
+                "title": m["title"],
+                "text": (r.get("ocr") or {}).get("text") or "",
+                "score": float(m["score"]),
+            }
+    counters, attached = {}, 0
+    for d in detections:
+        cls = (d.get("class") or d.get("category") or "").lower()
+        if label not in cls:
+            continue
+        stem = Path(d["image"]).stem
+        idx = counters.get(stem, 0)
+        counters[stem] = idx + 1
+        rec = by_source.get(f"{stem}#{idx}")
+        if rec:
+            d["title_match"] = rec
+            attached += 1
+    return attached
+
+
 def cluster_objects(anchors, dist_thresh):
     """Greedy single-link clustering per class over 3D anchors."""
     objs = []
@@ -73,6 +111,10 @@ def cluster_objects(anchors, dist_thresh):
                 o["frames"].add(a["frame"])
                 if a.get("ocr_text"):
                     o["ocr_texts"].add(a["ocr_text"])
+                tm = a.get("title_match")
+                if tm and (o["title_match"] is None
+                           or tm["score"] > o["title_match"]["score"]):
+                    o["title_match"] = tm
                 o["_members"].append(a["xyz"])
                 placed = True
                 break
@@ -81,6 +123,7 @@ def cluster_objects(anchors, dist_thresh):
                 "category": a["category"], "_sum": a["xyz"].copy(), "_n": 1,
                 "confidence": a["confidence"], "frames": {a["frame"]},
                 "ocr_texts": set([a["ocr_text"]] if a.get("ocr_text") else []),
+                "title_match": a.get("title_match"),
                 "_members": [a["xyz"]],
             })
     return objs
@@ -109,6 +152,7 @@ def fuse(cameras, images, points3D, detections, dist_thresh=0.5, min_points=4, m
             "confidence": float(d.get("confidence", 1.0)),
             "frame": Path(d["image"]).name,
             "ocr_text": d.get("ocr_text"),
+            "title_match": d.get("title_match"),
         })
 
     objects = []
@@ -122,7 +166,10 @@ def fuse(cameras, images, points3D, detections, dist_thresh=0.5, min_points=4, m
         kws = {o["category"]}
         for t in o["ocr_texts"]:
             kws.update(w.lower() for w in t.split() if len(w) > 2)
-        objects.append({
+        tm = o.get("title_match")
+        if tm:
+            kws.update(w.lower() for w in tm["title"].split() if len(w) > 2)
+        obj = {
             "id": f"obj_{i:04d}",
             "label": label,
             "category": o["category"],
@@ -134,7 +181,11 @@ def fuse(cameras, images, points3D, detections, dist_thresh=0.5, min_points=4, m
             },
             "confidence": round(float(o["confidence"]), 4),
             "source": {"frames": sorted(o["frames"]), "support": int(o["_n"])},
-        })
+        }
+        if tm:  # additive, optional: present only when a member spine matched
+            obj["title"] = tm["title"]
+            obj["text"] = tm["text"]
+        objects.append(obj)
     return objects
 
 
@@ -151,10 +202,19 @@ def main() -> int:
     ap.add_argument("--dist-thresh", type=float, default=0.5, help="merge radius (scene units)")
     ap.add_argument("--min-points", type=int, default=4, help="min sparse points to place a detection")
     ap.add_argument("--min-frames", type=int, default=1, help="min frames to keep an object")
+    ap.add_argument("--titles", type=Path, default=None,
+                    help="titles.json from ocr_titles.py; attaches matched book "
+                         "titles to fused objects (optional 'title'/'text' fields)")
+    ap.add_argument("--min-title-score", type=float, default=0.45,
+                    help="min fuzzy match score for a title to attach")
     args = ap.parse_args()
 
     cameras, images, points3D = colmap_io.read_model(args.sparse)
     detections = json.loads(args.detections.read_text())
+    if args.titles:
+        n = attach_titles(detections, json.loads(args.titles.read_text(encoding="utf-8")),
+                          args.min_title_score)
+        print(f"Attached {n} titled spines from {args.titles}")
     objects = fuse(cameras, images, points3D, detections,
                    args.dist_thresh, args.min_points, args.min_frames)
     args.out.parent.mkdir(parents=True, exist_ok=True)
