@@ -194,6 +194,13 @@ scene.add(spark);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
+// Headless-testing hook, same intent as window.__sceneObjects below: lets a
+// headless harness read/set an identical camera pose across loads.
+window.__camera = camera;
+window.__controls = controls;
+
+// ?clamp=<deg> restricts orbit to a frontal cone (see applyOrbitClamp). 0/absent = free.
+const CLAMP_DEG = parseFloat(params.get("clamp") || "0") || 0;
 
 // A group that carries the same ?flip as the splat, so object markers stay
 // glued to the reconstruction when the user flips it. Markers/measurement live
@@ -282,6 +289,7 @@ async function resolveSource(src) {
       onLoad: () => {
         statusEl.style.display = "none";   // .hidden is overridden by #status{display:grid}
         frameToObject(splat);
+        if (CLAMP_DEG > 0) applyOrbitClamp(CLAMP_DEG);
         console.info("[spatial-capture] splat loaded:", SRC);
       },
     });
@@ -328,6 +336,22 @@ function frameToObject(mesh) {
   const center = new THREE.Vector3(); box.getCenter(center);
   sceneRadius = Math.max(size.x, size.y, size.z) * 0.5 || 1;
   frameToSphere(center, sceneRadius, 1.5);
+}
+
+// ?clamp=<deg> locks orbit to a cone around the front-facing framing. A capture of an
+// object against a wall only ever saw a frontal arc; letting the camera swing behind it
+// shows unreconstructed emptiness (and, on a hazy splat, the see-through backside). The
+// clamp is measured from wherever the default framing points -- which IS the front -- so it
+// needs no scene-specific angles. Absent/0 => free orbit (unchanged default).
+function applyOrbitClamp(deg) {
+  const r = deg * Math.PI / 180;
+  const az = controls.getAzimuthalAngle();
+  controls.minAzimuthAngle = az - r;
+  controls.maxAzimuthAngle = az + r;
+  const pol = controls.getPolarAngle();
+  controls.minPolarAngle = Math.max(0.12, pol - 0.85);       // don't go fully overhead
+  controls.maxPolarAngle = Math.min(Math.PI - 0.05, pol + 0.6); // don't drop under the floor
+  controls.update();
 }
 
 // Reusable camera framing: point at `center`, back off to fit a sphere of
@@ -378,7 +402,7 @@ const objGroup = new THREE.Group();
 flipGroup.add(objGroup);        // markers ride the same ?flip as the splat
 const _wp = new THREE.Vector3(); // scratch for marker world positions
 
-window.__objectsReady = false; // headless-verification signals (see verify.mjs)
+window.__objectsReady = false; // headless-verification signals (read by a headless harness)
 window.__sceneObjects = [];
 window.__queryResult = null;
 
@@ -433,15 +457,18 @@ async function loadObjects(url) {
     sprite.userData.objId = o.id;
     objGroup.add(sprite);
 
+    // Prefer the resolved title (OCR -> retrieval, optional additive field) over the
+    // category-derived label: a hit for "dungeon" should read as the book, not "book".
+    const display = o.title || o.label || o.category || o.id;
     const el = document.createElement("div");
     el.className = "olabel";
-    el.textContent = o.label || o.category || o.id;
-    el.title = o.label || "";
+    el.textContent = display;
+    el.title = display;
     labelsEl.appendChild(el);
 
     const keywords = (o.keywords || []).map(s => String(s).toLowerCase());
-    const hay = [o.label, o.category, ...keywords].filter(Boolean).join(" ").toLowerCase();
-    return { id: o.id, label: o.label || o.category || o.id, category: o.category || "",
+    const hay = [o.title, o.label, o.category, ...keywords].filter(Boolean).join(" ").toLowerCase();
+    return { id: o.id, label: display, category: o.category || "",
              keywords, hay, pos, radius, el, sprite, base: markerBase };
   });
 
