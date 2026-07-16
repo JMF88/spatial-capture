@@ -49,5 +49,10 @@ docs/viewer/assets/*.ksplat
 # This rule must stay AFTER the un-ignore above: last match wins, and without it the
 # un-ignore drags every _probe.ply.enc back into the repo.
 docs/viewer/assets/_*
+# scene.json is fusion output (plaintext scene graph); published deliberately, not by default.
+docs/viewer/assets/scene.json
 passphrase.txt
 *.passphrase
+
+# Rust/Burn autotune cache
+target/
