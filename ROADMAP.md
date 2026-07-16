@@ -23,7 +23,7 @@ and where it heads. It doubles as the honest scope statement for the repo.
 | Semantic fusion (`understanding/fusion`) | **done, tested** — lifts 2D detections into a 3D scene graph (scene.json) |
 | Query CLI (`understanding/query.py`) | **done, tested** — terminal + `--json` for an agent |
 | Orchestrator + eval gate (`pipeline/run.py`, `gate.py`) | **done, tested** — config-driven, threshold-gated |
-| Test suite + CI (`tests/`, `.github`) | **green locally; never pushed** — 59 tests, ruff. Several are built from real failures rather than invented ones. |
+| Test suite + CI (`tests/`, `.github`) | **green locally; never pushed** — 91 tests, ruff. Several are built from real failures rather than invented ones. |
 | Classifier → ONNX (`export_onnx.py`) | **done** — torch↔onnx parity verified (browser-ready) |
 | Capture app (`docs/app`) | **done, verified headless** — Trove: capture coach + WiFi import + collection + object catalog (installable PWA). Not a camera, by platform necessity — see README. |
 | Docs (README / ARCHITECTURE / ROADMAP / CAPTURE_GUIDE) | authored |

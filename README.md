@@ -145,7 +145,7 @@ The GitHub Pages copy can't import — a secure page may not POST to a plain-HTT
 
 ## Quality
 
-`pytest` unit tests cover the pure logic (frame sharpness, splat-PLY validation, COLMAP IO + projection, semantic fusion on a synthetic scene, dataset splitting, query scoring, the orchestrator's stage planning, the eval gate, capture QA, asset encryption, and spine→title matching). `ruff` lints. Both run on every push via GitHub Actions once published; verified locally (59/59 tests, ruff clean).
+`pytest` unit tests cover the pure logic (frame sharpness, splat-PLY validation, COLMAP IO + projection, semantic fusion on a synthetic scene, dataset splitting, query scoring, the orchestrator's stage planning, the eval gate, capture QA, asset encryption, and spine→title matching). `ruff` lints. Both run on every push via GitHub Actions once published; verified locally (91/91 tests, ruff clean).
 
 Two gates, at opposite ends. `pipeline/rate_capture.py` grades the capture *before* reconstruction — a capture that won't reconstruct is cheap to reject and expensive to discover after 90 minutes of GPU time. `pipeline/gate.py` blocks *publishing* a scene whose reconstruction/classifier/OCR metrics miss threshold.
 

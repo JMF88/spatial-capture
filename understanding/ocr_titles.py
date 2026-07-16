@@ -45,6 +45,9 @@ INPUT (one of):
   --crops   DIR            a folder of pre-cropped spine images (one book each)
   --detections FILE.json   detector output; we crop every 'book' box ourselves
                            (pair with --frames-root so image paths resolve)
+  --from-titles FILE.json  an earlier titles.json; reuses its OCR reads and
+                           re-runs only the metadata lookup (no OCR, no GPU --
+                           the cheap way to iterate on retrieval/matching)
 
 OUTPUT:
   titles.json  — one record per spine: the OCR read + the matched book.
@@ -83,7 +86,7 @@ import requests
 # the precision policy is unit-testable without the ML stack — same reason splits.py
 # is split out of the classifier's common.py.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from matching import is_queryable, match_score  # noqa: E402
+from matching import is_queryable, match_score, walk_ladder  # noqa: E402
 
 IMG_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"}
 USER_AGENT = "spatial-capture/1.0 (book-spine OCR demo; https://github.com/jmf88/spatial-capture)"
@@ -194,15 +197,20 @@ class Lookup:
         self.timeout = timeout
         self.s = requests.Session()
         self.s.headers.update({"User-Agent": USER_AGENT})
+        self.calls_live = 0
+        self.calls_cached = 0
 
     def _get_json(self, url: str):
         key = hashlib.sha1(url.encode("utf-8")).hexdigest()
         cf = self.cache_dir / f"{key}.json"
         if cf.exists():
             try:
-                return json.loads(cf.read_text(encoding="utf-8"))
+                data = json.loads(cf.read_text(encoding="utf-8"))
+                self.calls_cached += 1
+                return data
             except Exception:
                 pass
+        self.calls_live += 1
         try:
             r = self.s.get(url, timeout=self.timeout)
             r.raise_for_status()
@@ -217,29 +225,41 @@ class Lookup:
             time.sleep(self.sleep)  # politeness on a live (uncached) fetch
         return data
 
-    def openlibrary(self, query: str):
+    def openlibrary_docs(self, kind: str, query: str):
+        """One Open Library search attempt -> candidate payloads (unscored).
+
+        `kind` comes from matching.build_query_ladder: "q" is the plain AND
+        keyword search (URL identical to earlier versions of this tool, so the
+        on-disk cache keeps paying), "q_or" is the Solr OR-union (wider net, so
+        ask for more docs and let scoring pick), "title" restricts AND matching
+        to the title field.
+        """
         fields = "title,author_name,first_publish_year,isbn,key,cover_i,edition_count"
-        url = "https://openlibrary.org/search.json?" + urlencode(
-            {"q": query, "limit": 5, "fields": fields})
+        if kind == "title":
+            params = {"title": query, "limit": 5, "fields": fields}
+        elif kind == "q_or":
+            # The union is wide by construction; ask for more docs so the true
+            # title is IN the candidate set -- scoring, not rank, then decides.
+            params = {"q": query, "limit": 20, "fields": fields}
+        else:
+            params = {"q": query, "limit": 5, "fields": fields}
+        url = "https://openlibrary.org/search.json?" + urlencode(params)
         data = self._get_json(url)
-        best, best_sc = None, -1.0
+        out = []
         for d in (data or {}).get("docs", []):
-            sc = match_score(query, d.get("title", ""))
-            if sc > best_sc:
-                cover = d.get("cover_i")
-                best_sc, best = sc, {
-                    "provider": "openlibrary",
-                    "title": d.get("title"),
-                    "authors": d.get("author_name") or [],
-                    "first_publish_year": d.get("first_publish_year"),
-                    "isbn": (d.get("isbn") or [None])[0],
-                    "work_key": d.get("key"),
-                    "url": ("https://openlibrary.org" + d["key"]) if d.get("key") else None,
-                    "cover_url": (f"https://covers.openlibrary.org/b/id/{cover}-M.jpg"
-                                  if cover else None),
-                    "score": sc,
-                }
-        return best
+            cover = d.get("cover_i")
+            out.append({
+                "provider": "openlibrary",
+                "title": d.get("title"),
+                "authors": d.get("author_name") or [],
+                "first_publish_year": d.get("first_publish_year"),
+                "isbn": (d.get("isbn") or [None])[0],
+                "work_key": d.get("key"),
+                "url": ("https://openlibrary.org" + d["key"]) if d.get("key") else None,
+                "cover_url": (f"https://covers.openlibrary.org/b/id/{cover}-M.jpg"
+                              if cover else None),
+            })
+        return out
 
     def googlebooks(self, query: str):
         url = "https://www.googleapis.com/books/v1/volumes?" + urlencode(
@@ -266,21 +286,23 @@ class Lookup:
         return best
 
     def best(self, query: str, provider: str, min_match: float):
-        """Query per --provider; on a weak/empty Open Library hit, fall back."""
-        cands = []
+        """Resolve one read per --provider; None unless a match clears min_match.
+
+        Open Library runs the bounded degradation ladder (matching.walk_ladder):
+        full query -> OR-union of content tokens -> title-field query -> clean
+        token pairs, stopping at the first attempt whose best doc matches the
+        FULL read at min_match. Google Books stays a single full-query call
+        (keyless quota is tiny; it is a fallback, not a peer).
+        """
         if provider in ("openlibrary", "both"):
-            cands.append(self.openlibrary(query))
-        if provider == "googlebooks":
-            cands.append(self.googlebooks(query))
-        elif provider == "both":
-            # only spend a Google call if Open Library was weak
-            if not cands or not cands[0] or cands[0]["score"] < min_match:
-                cands.append(self.googlebooks(query))
-        cands = [c for c in cands if c]
-        if not cands:
-            return None
-        top = max(cands, key=lambda c: c["score"])
-        return top if top["score"] >= min_match else None
+            m, _tried = walk_ladder(query, self.openlibrary_docs, min_match)
+            if m:
+                return m
+        if provider in ("googlebooks", "both"):
+            g = self.googlebooks(query)
+            if g and g["score"] >= min_match:
+                return g
+        return None
 
 
 # --------------------------------------------------------------------------- #
@@ -394,6 +416,9 @@ def main() -> int:
     src.add_argument("--crops", type=Path, help="folder of pre-cropped spine images")
     src.add_argument("--detections", type=Path,
                      help="detections.json; 'book' boxes are cropped for OCR")
+    src.add_argument("--from-titles", type=Path,
+                     help="re-run only the metadata lookup over an existing "
+                          "titles.json (reuses its OCR reads; no OCR, no GPU)")
     ap.add_argument("--frames-root", type=Path, default=None,
                     help="dir the detections.json image paths live in (box mode)")
     ap.add_argument("--label", default="book",
@@ -423,25 +448,46 @@ def main() -> int:
     if args.crops and not args.crops.exists():
         print(f"ERROR: crops folder not found: {args.crops}", file=sys.stderr)
         return 2
+    if args.from_titles and not args.from_titles.exists():
+        print(f"ERROR: titles file not found: {args.from_titles}", file=sys.stderr)
+        return 2
 
-    reader = load_reader(args.langs, want_gpu(args.device))
     lookup = Lookup(args.cache_dir, args.sleep, timeout=15.0)
     if args.debug_crops:
         args.debug_crops.mkdir(parents=True, exist_ok=True)
 
-    if args.crops:
-        source = iter_crops_folder(args.crops)
+    if args.from_titles:
+        # Lookup-only replay: the OCR pass is the expensive step (GPU, ~minutes);
+        # retrieval policy changes should not repeat it.
+        prev = json.loads(args.from_titles.read_text(encoding="utf-8"))
+
+        def reads():
+            for r in prev:
+                o = r.get("ocr") or {}
+                yield (r.get("source", ""), o.get("text", ""),
+                       float(o.get("confidence") or 0.0), o.get("angle", "0"),
+                       o.get("engine", "easyocr"))
     else:
-        source = iter_crops_detections(args.detections, args.frames_root, args.label)
+        reader = load_reader(args.langs, want_gpu(args.device))
+        if args.crops:
+            source = iter_crops_folder(args.crops)
+        else:
+            source = iter_crops_detections(args.detections, args.frames_root,
+                                           args.label)
+
+        def reads():
+            for sid, crop in source:
+                if args.debug_crops is not None:
+                    cv2.imwrite(str(args.debug_crops / f"{sid.replace('#', '_')}.png"),
+                                crop)
+                text, conf, angle = ocr_spine(reader, crop, args.min_side)
+                yield sid, text, conf, angle, "easyocr"
 
     records, matched = [], 0
-    for i, (sid, crop) in enumerate(source):
-        if args.debug_crops is not None:
-            cv2.imwrite(str(args.debug_crops / f"{sid.replace('#', '_')}.png"), crop)
-        text, conf, angle = ocr_spine(reader, crop, args.min_side)
+    for i, (sid, text, conf, angle, engine) in enumerate(reads()):
         rec = {"source": sid,
                "ocr": {"text": text, "confidence": round(conf, 3),
-                       "angle": angle, "engine": "easyocr"},
+                       "angle": angle, "engine": engine},
                "query": "", "match": None}
         if text and conf >= args.min_conf:
             q = clean_query(text)
@@ -462,7 +508,8 @@ def main() -> int:
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(records, indent=2, ensure_ascii=False),
                         encoding="utf-8")
-    print(f"\n{matched}/{len(records)} spines matched. Wrote {args.out}")
+    print(f"\n{matched}/{len(records)} spines matched. Wrote {args.out} "
+          f"(API: {lookup.calls_live} live, {lookup.calls_cached} cached)")
     return 0
 
 
