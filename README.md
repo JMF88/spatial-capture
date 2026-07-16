@@ -25,8 +25,8 @@ One capture feeds two branches, which are then **fused into one queryable scene*
             -> GO / RESHOOT *before* the GPU bill
       |
       |-----------------  RECONSTRUCTION  (AI as OPTIMIZATION)
-      |   POSES         where were the cameras?      Postshot SfM  (open lane: VGGT)
-      |   SPLAT TRAIN   fit millions of 3D Gaussians Postshot 3DGS (open lane: gsplat)
+      |   POSES         where were the cameras?      COLMAP        (open lane: VGGT)
+      |   SPLAT TRAIN   fit millions of 3D Gaussians Brush/wgpu    (open lane: gsplat)
       |   CLEAN/EXPORT  crop, compress               SuperSplat -> .spz / .sog
       |
       |-----------------  UNDERSTANDING  (AI as SUPERVISED / TRAINED MODELS)
@@ -55,8 +55,8 @@ Together: capture → reconstruct → detect → classify → read → fuse → 
 | **LAN import (phone → workstation)** | `pipeline/00_import_server.py` | — | MIT |
 | Frame extraction | ffmpeg + `pipeline/01_extract_frames.py` | — | LGPL / MIT (this code) |
 | **Capture QA gate** | `pipeline/rate_capture.py` | — | MIT |
-| Camera poses (SfM) | Jawset Postshot | VGGT transformer → COLMAP format | Postshot EULA / Apache-2.0 |
-| Splat training | Jawset Postshot (3DGS) | gsplat | Postshot EULA / **Apache-2.0** |
+| Camera poses (SfM) | **COLMAP** → `sparse/0/*.bin` | VGGT transformer → COLMAP format | BSD / Apache-2.0 |
+| Splat training | **Brush** (Rust/wgpu — no CUDA toolkit) | gsplat | Apache-2.0 / **Apache-2.0** |
 | Splat validation | `pipeline/validate_splat_ply.py` | — | MIT |
 | Clean + compress | PlayCanvas SuperSplat | — | MIT |
 | Detection | open-vocab detector (YOLOE) | — | **AGPL-3.0** (see note) |
@@ -89,7 +89,11 @@ Or stage by stage:
 python pipeline/01_extract_frames.py --input data/office/office.mp4 \
     --out data/office/frames --fps 3 --long-edge 1600 --keep 0.85
 
-# 2. poses + splat: open the frames (or the video) in Jawset Postshot, export a Splat-profile PLY,
+# 2. poses + splat -- free and headless, no CUDA toolkit and no MSVC required:
+colmap feature_extractor --database_path recon/database.db --image_path recon/images \n    --ImageReader.single_camera 1 --FeatureExtraction.use_gpu 0
+colmap exhaustive_matcher --database_path recon/database.db --FeatureMatching.use_gpu 0
+colmap mapper --database_path recon/database.db --image_path recon/images --output_path recon/sparse
+brush_app recon --total-steps 15000 --export-path recon/splat
 #    then verify it really is a splat (not a point cloud):
 python pipeline/validate_splat_ply.py data/office/office.ply
 #    (open lane, reproducible: pipeline/02_poses_vggt.py -> pipeline/03_train_gsplat.py)
