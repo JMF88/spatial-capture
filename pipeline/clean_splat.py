@@ -12,6 +12,21 @@ of it:
              7.7 x 9.8 x 2.1 units; the full bounding box was 74.8 x 62.0 x 67.9 -- up to
              32x larger. Any viewer that frames on min/max therefore points the camera at
              nothing. A tenth of a percent of the data owned the entire framing.
+  veil       big AND faint Gaussians. This one is the least obvious and mattered most for
+             legibility. The instinct is to cull faint Gaussians -- resist it. Median opacity
+             in a healthy splat here is 0.088, and 55% of Gaussians are fainter than 0.1: a
+             3DGS surface is BUILT from a pile of near-transparent blobs, so "cull the faint"
+             deletes the scene. It is the conjunction that is pathological. A big faint
+             Gaussian fogs a wide area of screen while contributing almost nothing to it,
+             which is exactly a veil. Small+faint is legitimate detail; big+opaque is a
+             legitimate wall or floor. Only big+faint is waste.
+
+             Culling 11.3% on this basis (size > 0.05, opacity < 0.15) took the shelf from
+             "recognisable through fog" to individually legible book spines, and the file got
+             SMALLER, not blurrier. Note PlayCanvas splat-transform's voxel-occupancy floater
+             filter (-F) removed none of this: the veil Gaussians are connected to the scene
+             and sit in front of it. They are not floaters and no floater filter will find them.
+
   needles    a Gaussian stretched into a splinter draws a streak across the whole view.
              These are an artifact of optimisation, not a feature of the room.
 
@@ -89,6 +104,11 @@ def main() -> int:
                     help="drop Gaussians larger than this percentile of size")
     ap.add_argument("--min-opacity", type=float, default=0.02,
                     help="drop Gaussians fainter than this (post-sigmoid)")
+    ap.add_argument("--veil-size", type=float, default=0.05,
+                    help="veil test, half 1: linear size above which a Gaussian covers real screen area")
+    ap.add_argument("--veil-opacity", type=float, default=0.15,
+                    help="veil test, half 2: opacity below which it contributes ~nothing. BOTH must hold "
+                         "-- faint alone is normal (median 0.088), see module docstring. 0 disables")
     args = ap.parse_args()
 
     if not args.input.is_file():
@@ -117,8 +137,14 @@ def main() -> int:
     not_needle = (srt[:, 2] / np.maximum(srt[:, 1], 1e-12)) <= args.max_aniso
     not_huge = longest <= np.percentile(longest, args.max_scale_pct)
     visible = opacity >= args.min_opacity
+    # The conjunction is the point. Either half alone would cull healthy geometry.
+    not_veil = (
+        np.ones(n, dtype=bool)
+        if args.veil_opacity <= 0
+        else ~((longest > args.veil_size) & (opacity < args.veil_opacity))
+    )
 
-    keep = in_box & not_needle & not_huge & visible
+    keep = in_box & not_needle & not_huge & visible & not_veil
 
     def pct(mask):
         return f"{(~mask).sum():>9,}  ({100 * (~mask).mean():5.2f}%)"
@@ -128,6 +154,7 @@ def main() -> int:
     print(f"  culled needles  (long/mid > {args.max_aniso:g}:1)      : {pct(not_needle)}")
     print(f"  culled giants   (> p{args.max_scale_pct} size)          : {pct(not_huge)}")
     print(f"  culled faint    (opacity < {args.min_opacity})        : {pct(visible)}")
+    print(f"  culled veil     (size>{args.veil_size:g} AND op<{args.veil_opacity:g}) : {pct(not_veil)}")
     print(f"  KEPT: {keep.sum():,}  ({100 * keep.mean():.1f}%)")
 
     if keep.sum() < 0.5 * n:

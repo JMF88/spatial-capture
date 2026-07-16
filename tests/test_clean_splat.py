@@ -84,6 +84,60 @@ def test_floaters_do_not_own_the_bbox(cs, tmp_path):
     assert np.all(extent < 15), f"floaters still own the bbox: {extent}"
 
 
+def test_veil_needs_both_halves(cs, tmp_path):
+    """big AND faint dies; big-and-opaque and small-and-faint both live.
+
+    This is the test that stops a future edit from "simplifying" the veil rule down to a
+    plain opacity threshold. Median opacity in a real splat is 0.088 -- faint is the NORM,
+    and culling on faintness alone deletes the surface.
+    """
+    import sys
+    xyz = np.zeros((300, 3), dtype=np.float64)
+    xyz[:, 0] = np.linspace(-1, 1, 300)
+    scales = np.empty((300, 3))
+    logit = np.empty(300)
+    scales[:100], logit[:100] = 0.2, -4.0        # big + faint (op~0.018) -> VEIL, must die
+    scales[100:200], logit[100:200] = 0.2, 4.0   # big + opaque -> a wall, must live
+    scales[200:], logit[200:] = 0.005, -4.0      # small + faint -> detail, must live
+
+    src = _ply(tmp_path, xyz, scales, opacity=logit)
+    out = tmp_path / "out.ply"
+    argv = sys.argv
+    sys.argv = ["clean_splat", str(src), "--out", str(out),
+                "--veil-size", "0.05", "--veil-opacity", "0.15",
+                "--min-opacity", "0.0", "--keep", "100", "--max-scale-pct", "100"]
+    try:
+        assert cs.main() == 0
+    finally:
+        sys.argv = argv
+
+    _, v, _ = cs.read_ply(out)
+    size = np.exp(np.stack([v["scale_0"], v["scale_1"], v["scale_2"]], 1)).max(1)
+    op = 1 / (1 + np.exp(-v["opacity"]))
+    assert len(v) == 200, f"expected the 100 veil blobs culled and 200 kept, got {len(v)}"
+    assert not np.any((size > 0.05) & (op < 0.15)), "a veil Gaussian survived"
+    assert np.sum(op > 0.5) == 100, "the opaque walls were culled -- veil rule lost its size half"
+    assert np.sum(size < 0.01) == 100, "the faint detail was culled -- veil rule lost its opacity half"
+
+
+def test_veil_disabled_by_zero(cs, tmp_path):
+    """--veil-opacity 0 must turn the filter off, not cull everything."""
+    import sys
+    xyz = np.zeros((50, 3))
+    xyz[:, 0] = np.linspace(-1, 1, 50)
+    src = _ply(tmp_path, xyz, np.full((50, 3), 0.2), opacity=np.full(50, -4.0))
+    out = tmp_path / "out.ply"
+    argv = sys.argv
+    sys.argv = ["clean_splat", str(src), "--out", str(out), "--veil-opacity", "0",
+                "--min-opacity", "0.0", "--keep", "100", "--max-scale-pct", "100"]
+    try:
+        assert cs.main() == 0
+    finally:
+        sys.argv = argv
+    _, v, _ = cs.read_ply(out)
+    assert len(v) == 50
+
+
 def test_refuses_a_point_cloud(cs, tmp_path):
     """A non-splat PLY must be rejected, not silently mangled."""
     props = ["x", "y", "z"]
