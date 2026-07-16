@@ -110,6 +110,26 @@ def probe_video(path: Path) -> dict:
         return {}
 
 
+def unique_dest(dest_dir: Path, name: str) -> Path:
+    """A destination path that never silently replaces an existing capture.
+
+    Camera apps love to reuse filenames -- a master and its generated proxy commonly
+    share one, differing only by folder. Uploading both to the same scene would have
+    the second land on the first and destroy it with no error and no way to know which
+    survived. Given the whole point of this server is that what you shot is what arrives,
+    clobbering is the one failure it must not have. Suffix instead: never overwrite.
+    """
+    target = dest_dir / name
+    if not target.exists():
+        return target
+    stem, suffix = target.stem, target.suffix
+    for n in range(2, 1000):
+        alt = dest_dir / f"{stem} ({n}){suffix}"
+        if not alt.exists():
+            return alt
+    raise OSError(f"too many files named like {name}")
+
+
 def lan_ip() -> str:
     """Best-effort primary LAN IPv4.
 
@@ -177,8 +197,8 @@ class ImportHandler(SimpleHTTPRequestHandler):
         is_video = suffix in VIDEO_SUFFIXES
         dest_dir = self.data_root / scene if is_video else self.data_root / scene / "photos"
         dest_dir.mkdir(parents=True, exist_ok=True)
-        final = dest_dir / name
-        partial = dest_dir / (name + ".part")
+        final = unique_dest(dest_dir, name)
+        partial = dest_dir / (final.name + ".part")
 
         mb = total / (1 << 20)
         print(f"\n<- receiving {name} ({mb:,.0f} MB) -> {final}", flush=True)
@@ -220,6 +240,7 @@ class ImportHandler(SimpleHTTPRequestHandler):
                   "--fps 3 --long-edge 1600 --keep 0.85", flush=True)
         return self._json(200, {"ok": True, "saved": str(final), "bytes": got,
                                 "scene": scene, "kind": "video" if is_video else "photo",
+                                "renamed": final.name if final.name != name else None,
                                 "media": media})
 
 
