@@ -288,7 +288,7 @@ async function resolveSource(src) {
       ...source,
       onLoad: () => {
         statusEl.style.display = "none";   // .hidden is overridden by #status{display:grid}
-        frameToObject(splat);
+        if (!viewApplied) frameToObject(splat);   // a scene-declared view takes precedence
         if (CLAMP_DEG > 0) applyOrbitClamp(CLAMP_DEG);
         console.info("[spatial-capture] splat loaded:", SRC);
       },
@@ -336,6 +336,23 @@ function frameToObject(mesh) {
   const center = new THREE.Vector3(); box.getCenter(center);
   sceneRadius = Math.max(size.x, size.y, size.z) * 0.5 || 1;
   frameToSphere(center, sceneRadius, 1.5);
+}
+
+// scene.json may carry a "view": the capture's own mean camera pose (+ the world's up
+// axis), baked at fusion time. Framing from where the real cameras stood is upright and
+// front-facing by construction -- no bbox guessing, no ?flip needed for such scenes.
+let sceneView = null, viewApplied = false;
+function applySceneView() {
+  if (!sceneView || viewApplied) return;
+  if (Array.isArray(sceneView.up)) camera.up.fromArray(sceneView.up);
+  camera.position.fromArray(sceneView.position);
+  controls.target.fromArray(sceneView.target);
+  const d = camera.position.distanceTo(controls.target);
+  camera.near = Math.max(d / 100, 1e-4);
+  camera.far = d * 1000;
+  camera.updateProjectionMatrix();
+  controls.update();
+  viewApplied = true;
 }
 
 // ?clamp=<deg> locks orbit to a cone around the front-facing framing. A capture of an
@@ -429,6 +446,10 @@ async function loadObjects(url) {
     console.info("[objects] no scene.json (" + e.message + "); overlay disabled");
     window.__objectsReady = true;
     return;
+  }
+  if (data && data.view && Array.isArray(data.view.position) && Array.isArray(data.view.target)) {
+    sceneView = data.view;
+    applySceneView();
   }
   const raw = Array.isArray(data) ? data : (data.objects || []);
   // marker world-size / default focus radius from the spread of object positions,
