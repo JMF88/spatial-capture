@@ -16,9 +16,8 @@
 // Kept as a separate module with no three.js import so the arithmetic is testable in
 // node without a browser or a GPU. The viewer does the picking; this does the numbers.
 
-// Everything converts through metres. Feet and inches are here because the person this
-// was built for is an American civil engineer who thinks in them; refusing imperial
-// would be a purity that costs a user.
+// Everything converts through metres. Feet and inches are first-class because the
+// intended users think in them; refusing imperial would be a purity that costs a user.
 export const UNITS = {
   mm: { label: "mm", perMetre: 1000, decimals: 0 },
   cm: { label: "cm", perMetre: 100, decimals: 1 },

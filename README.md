@@ -1,7 +1,5 @@
 # spatial-capture
 
-<!-- screenshot: hero image of the trained splat in the repo viewer goes here. TODO: publishing a real-room screenshot is a pending decision — leave commented out until decided. -->
-
 Capture a real enclosed space with a phone, reconstruct it as a **browser-viewable 3D Gaussian splat**, **understand what's in it**, and **ask it questions**. A reproducible, Windows-native pipeline that runs on a single consumer GPU.
 
 > **Status:** the pipeline is built and tested end to end — reconstruction, understanding, semantic fusion, a queryable viewer with metric calibration, an orchestrator + two eval gates, a test suite/CI, and a mobile capture app. **The first real capture has been shot, passed the QA gate with zero blockers** (nine passes, 4K, locked exposure — all nine MARGINAL, advisory warnings only), **and trained to a splat**: 1,342,519 Gaussians, cleaned to 1,019,159, compressed to a 9.5 MB SOG that renders in the repo's own viewer. No live demo link yet — publishing the asset is a pending decision, so the collection ships empty. Nothing in this repo is illustrative — when a scene appears, it's a real one. Built and tested on Windows 11 with an RTX 4070 Laptop (8 GB VRAM).
@@ -45,7 +43,7 @@ One capture feeds two branches, which are then **fused into one queryable scene*
 ```
 
 - **Reconstruction is optimization.** A Gaussian splat is not "modeled" — it is *optimized*: differentiable rendering plus gradient descent fit a cloud of 3D Gaussians to your photos until the rendered views match the real ones. No labels, no training set.
-- **Understanding is supervised learning.** The classifier is a model trained on labeled examples — the full lifecycle (collect → label → split → transfer-learn → evaluate → deploy).
+- **Understanding is supervised learning.** The classifier is a model trained on labeled examples — the full lifecycle (collect → label → split → transfer-learn → evaluate → deploy). Validated end to end on synthetic data so far; the real-book classifier is the next step, not a shipped result.
 - **Fusion is geometry.** The camera poses let you project the sparse 3D points into each detection and recover where an object actually *is* — turning pixels-with-labels into a scene graph.
 
 Together: capture → reconstruct → detect → classify → read → fuse → query. That is the honest first rung of a live AR overlay (the same pipeline, made real-time and head-mounted) — see [`ROADMAP.md`](ROADMAP.md).

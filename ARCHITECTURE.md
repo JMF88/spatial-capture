@@ -297,8 +297,9 @@ cannot:** fit a smooth trend, measure the residual. On one shelf, same subject:
 - **Eval gate:** publishing is blocked when reconstruction PSNR/SSIM, classifier macro-F1, or
   OCR CER miss threshold. A missing metric is reported, never silently passed.
 - **Tests + CI:** the pure logic is unit-tested and linted — green locally, and on every push
-  once the repo is published; heavy (torch/GPU) tests are marked and skipped in the light CI. That's why `splits.py` exists apart from
-  `common.py` — so the split logic is testable without the ML stack.
+  once the repo is published. The suite is deliberately pure-logic (no torch/GPU in CI); the
+  ML stages are hand-validated on real runs rather than unit-tested. That's why `splits.py`
+  exists apart from `common.py` — so the split logic is testable without the ML stack.
 - **Why it matters:** the demo proves the capability; this layer answers "how would a team run
   this without you." And the thing that actually needs to scale isn't compute — it's capture,
   which is why the app below exists.

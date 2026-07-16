@@ -54,5 +54,11 @@ docs/viewer/assets/scene.json
 passphrase.txt
 *.passphrase
 
+# OCR/detection outputs can carry text read off a real scene; keep them local.
+# (The tool's default --out is repo-root titles.json; harden against a stray git add.)
+titles.json
+**/titles.json
+**/detections.json
+
 # Rust/Burn autotune cache
 target/
