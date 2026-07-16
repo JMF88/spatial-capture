@@ -48,10 +48,26 @@ from PIL import Image
 MIN_OVERLAP = 0.55          # below: consecutive frames share too little view
 LOW_OVERLAP = 0.65          # below: thin, will likely still solve
 HIGH_OVERLAP = 0.97         # above: redundant (harmless, just slow)
-EXPOSURE_DRIFT_BAD = 0.25   # fraction of mean luma
+EXPOSURE_DRIFT_BAD = 0.25   # frame-mean spread; CONTEXT ONLY -- see exposure_wobble
 EXPOSURE_DRIFT_WARN = 0.12
-WB_DRIFT_BAD = 0.10         # fraction, R/G or B/G range
+# Detrended luma wobble: the discriminator that actually works. Calibrated on real
+# captures of the same shelf, auto vs locked:
+#     auto-exposure (2 takes):   18.0%, 16.1%      <- a meter fighting itself
+#     locked exposure (9 takes): 2.2% - 6.2%       <- scene only
+# A 3-8x gap, so 10% sits clear of both. Widen the calibration before trusting the
+# threshold on a different room or subject.
+WOBBLE_BAD = 0.10
+WOBBLE_WARN = 0.06
+WB_DRIFT_BAD = 0.10         # R/G or B/G range; CONTEXT ONLY -- includes the subject's colour
 WB_DRIFT_WARN = 0.05
+# Colour is ADVISORY ONLY -- it never blocks. Measured on one shelf, auto vs locked:
+#     auto-WB   : 3.5%, 4.5%
+#     locked-WB : 0.5% - 4.2%   <- two locked takes read HIGHER than an auto one
+# The distributions overlap, so no threshold separates them and any blocker here is a
+# coin flip. See wb_wobble in analyse() for why: unlike brightness, a subject's colour
+# does not change smoothly as you move (white robot -> wood -> beige wall), so detrending
+# does not isolate the camera. Reported for a human to weigh, not to gate on.
+WB_WOBBLE_WARN = 0.030
 SOFT_FRAC_BAD = 0.30        # fraction of frames well below median sharpness
 SOFT_FRAC_WARN = 0.15
 CLIP_WARN = 0.02            # fraction of pixels blown
@@ -145,6 +161,38 @@ def overlap_fraction(dy: float, dx: float, shape: tuple[int, int]) -> float:
     return ox * oy
 
 
+def detrended_wobble(series: np.ndarray) -> float:
+    """How much frame brightness WOBBLES, after removing where it smoothly went.
+
+    The distinction this draws is the whole point, and getting it wrong sends someone
+    to reshoot a correct capture. Mean frame brightness moves for two unrelated reasons:
+
+      the camera   an auto-exposure re-metering as the framing changes. It OSCILLATES:
+                   the meter chases content, overshoots, corrects, overshoots back.
+      the scene    a locked camera walking past a lamp. It RAMPS, smoothly, because
+                   the room's brightness is a smooth function of where you stand.
+
+    Only the first is a defect -- and with the exposure locked (which is the advice) the
+    second is *guaranteed*. Frame-mean spread cannot tell them apart, so it must not be
+    the blocker: it flagged a locked take whose brightness ramped 69->127 monotonically,
+    with a straight line explaining 94% of it.
+
+    So fit a quadratic (a walk past a light is a curve, not a line) and measure what is
+    left over. Smooth scene change lands in the trend; a meter's chatter lands in the
+    residual. Measured on real captures of one shelf: auto 18.0%/16.1%, locked 2.2%-6.2%.
+
+    Limit worth knowing: an auto-exposure that drifts *smoothly* -- slow enough to look
+    like a walk -- hides in the trend and reads clean here. This catches chatter, not
+    perfectly-graceful drift. In practice meters chatter.
+    """
+    if len(series) < 4:
+        return 0.0
+    x = np.arange(len(series), dtype=np.float64)
+    resid = series - np.polyval(np.polyfit(x, series, 2), x)
+    return float(resid.std() / max(abs(series.mean()), 1e-6))
+
+
+
 def analyse(frames: list[Path]) -> dict:
     grays, means = [], []
     for p in frames:
@@ -172,6 +220,12 @@ def analyse(frames: list[Path]) -> dict:
         (rg.max() - rg.min()) / max(rg.mean(), 1e-6),
         (bg.max() - bg.min()) / max(bg.mean(), 1e-6),
     ))
+    # Channel ratios move when the SUBJECT's colour changes, not just when the camera's
+    # white balance does -- pan from warm wood to a white robot and R/G swings with WB
+    # rock solid. Exactly the same conflation as exposure drift, and it produced exactly
+    # the same false RESHOOT (23% "WB drift" on a take shot at a locked 2930K). Detrend
+    # for the same reason: a hunting AWB chatters, a subject changes smoothly.
+    wb_wobble = float(max(detrended_wobble(rg), detrended_wobble(bg)))
 
     med_sharp = float(np.median(sharp))
     soft_frac = float((sharp < 0.5 * med_sharp).mean())
@@ -181,11 +235,14 @@ def analyse(frames: list[Path]) -> dict:
         clipped.append(float((g >= 250).mean()))
         crushed.append(float((g <= 5).mean()))
 
-    overlaps, peaks = [], []
+    overlaps, peaks, shifts = [], [], []
     for i in range(len(grays) - 1):
         dy, dx, pk = phase_shift(grays[i], grays[i + 1])
         overlaps.append(overlap_fraction(dy, dx, grays[i].shape))
         peaks.append(pk)
+        shifts.append((dy, dx))
+
+    wobble = detrended_wobble(luma)
     overlaps = np.array(overlaps) if overlaps else np.array([1.0])
     peaks = np.array(peaks) if peaks else np.array([0.0])
     # Relative, because absolute peak scale depends on subject texture, not on capture
@@ -200,8 +257,16 @@ def analyse(frames: list[Path]) -> dict:
             "p10": float(np.percentile(sharp, 10)),
             "soft_fraction": soft_frac,
         },
-        "exposure": {"drift": exp_drift, "flicker": flicker},
-        "white_balance": {"drift": wb_drift},
+        "exposure": {
+            "drift": exp_drift,     # frame-mean spread: scene AND camera together. Context only.
+            "wobble": wobble,       # detrended residual: the camera alone. This is the blocker.
+            "flicker": flicker,
+            "note": "drift mixes scene with camera and is not a defect on a locked take; wobble isolates the camera",
+        },
+        "white_balance": {
+            "drift": wb_drift,      # includes the subject's own colour. Context only.
+            "wobble": wb_wobble,    # the camera alone. This is the blocker.
+        },
         "overlap": {
             "median": float(np.median(overlaps)),
             "p10": float(np.percentile(overlaps, 10)),
@@ -249,22 +314,44 @@ def verdict(m: dict) -> tuple[str, list[str], list[str]]:
     if ov["match_confidence"] < 0.02:
         warn.append("very low phase-correlation confidence overall - lots of rotation/zoom, or a featureless subject. Treat overlap numbers as soft.")
 
+    # Judge the camera, not the scene. A locked exposure walking a shelf from its dark
+    # end to its lit end ramps the frame mean by design; blocking on that sends someone
+    # to reshoot a correct capture. See exposure_wobble.
     e = m["exposure"]
-    if e["drift"] > EXPOSURE_DRIFT_BAD:
-        bad.append(f"exposure drifted {e['drift']:.0%} across the take - AE was not locked. Lock AE/AF and reshoot.")
-    elif e["drift"] > EXPOSURE_DRIFT_WARN:
-        warn.append(f"exposure drifted {e['drift']:.0%} - lock looks soft, or the light changed.")
+    if e["wobble"] > WOBBLE_BAD:
+        bad.append(
+            f"brightness wobbles {e['wobble']:.0%} after removing the smooth trend - that is a meter "
+            f"re-metering as you move, not the room. Lock exposure and reshoot."
+        )
+    elif e["wobble"] > WOBBLE_WARN:
+        warn.append(f"brightness wobbles {e['wobble']:.0%} after detrending - the exposure lock looks soft.")
+    if e["drift"] > EXPOSURE_DRIFT_BAD and e["wobble"] <= WOBBLE_WARN:
+        warn.append(
+            f"frame brightness ranges {e['drift']:.0%} across the take, but it moves SMOOTHLY "
+            f"({e['wobble']:.0%} wobble) - that is an unevenly lit scene with a locked camera, which is "
+            f"correct. Not a defect. Expect the unevenness baked into the reconstruction."
+        )
     if e["flicker"] > FLICKER_WARN:
         warn.append(
             f"frame-to-frame brightness bounces {e['flicker']:.1%} - looks like mains flicker beating "
             f"against the shutter. Try 1/120s (or 1/60s) under LED/fluorescent light."
         )
 
-    w = m["white_balance"]["drift"]
-    if w > WB_DRIFT_BAD:
-        bad.append(f"white balance drifted {w:.0%} - AWB was hunting. Stock iOS AE/AF Lock does NOT lock WB; use a manual camera app.")
-    elif w > WB_DRIFT_WARN:
-        warn.append(f"white balance drifted {w:.0%} - mixed light sources, or AWB not locked.")
+    # Advisory only. Frame statistics cannot tell a hunting AWB from a subject that is
+    # simply a different colour over there, and the two distributions overlap on real
+    # data -- so this reports and never blocks.
+    wb = m["white_balance"]
+    if wb["wobble"] > WB_WOBBLE_WARN:
+        warn.append(
+            f"colour wobbles {wb['wobble']:.1%} after detrending. Could be an AWB hunting, could be the "
+            f"subject's own colour changing unevenly - this measure cannot tell them apart. If you locked "
+            f"white balance, it is the subject. If you did not, lock it."
+        )
+    elif wb["drift"] > WB_DRIFT_BAD:
+        warn.append(
+            f"channel ratios range {wb['drift']:.0%} across the take - subject colour, camera, or both. "
+            f"Advisory; a locked white balance makes this the subject."
+        )
 
     s = m["sharpness"]
     if s["soft_fraction"] > SOFT_FRAC_BAD:
