@@ -10,7 +10,7 @@ Capture a real enclosed space with a phone, reconstruct it as a **browser-viewab
 
 ## Why enclosures
 
-Most real reality-capture jobs — training simulations, workspace walkthroughs, digital twins of venues and facilities — are **enclosures**: you stand *inside* the space and the camera looks *outward*. That "inside-out" capture is the harder case than orbiting a single object (divergent views give the solver less overlap to lock onto), which is exactly why it's the valuable one. This repo is built for the enclosure case and hasn't yet proven it: the pipeline runs end to end, but the first real capture is still to come, with a bookshelf as the de-risking subject inside the same room.
+Most real reality-capture jobs — training simulations, workspace walkthroughs, digital twins of venues and facilities — are **enclosures**: you stand *inside* the space and the camera looks *outward*. That "inside-out" capture is the harder case than orbiting a single object (divergent views give the solver less overlap to lock onto), which is exactly why it's the valuable one. This repo is built for the enclosure case and hasn't proven it yet: the bookshelf — the de-risking subject in the same room — has been shot and cleared the capture gate; the enclosure is next.
 
 ## Two branches, two kinds of AI — then fused
 
