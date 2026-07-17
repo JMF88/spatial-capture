@@ -197,7 +197,6 @@ import { UNITS, DEFAULT_UNIT, metresPerUnit, formatDistance, relativeError,
 import { installPhysics } from "./physics.js";
 import { initTour } from "./tour.js";
 import { initVR } from "./vr.js";
-import { initBackdrop } from "./backdrop.js";
 
 const params = new URLSearchParams(location.search);
 const SRC = params.get("src") || "./assets/scene.sog.enc"; // .ply/.splat/.spz/.sog/.ksplat/.enc
@@ -512,10 +511,6 @@ async function loadObjects(url) {
     applySceneView();
   }
   const raw = Array.isArray(data) ? data : (data.objects || []);
-  // a solid back panel flush to the shelf, so the void behind reads as a wall and
-  // the animation has something to fall against (never blocks load).
-  try { window.__backdrop = initBackdrop({ THREE, parent: flipGroup, objects: raw, view: sceneView }); }
-  catch (e) { console.warn("[backdrop] skipped", e); }
   // marker world-size / default focus radius from the spread of object positions,
   // so it's sensible even before the splat's bounding box is known.
   const bb = new THREE.Box3();
