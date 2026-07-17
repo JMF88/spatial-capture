@@ -410,6 +410,13 @@ def iter_crops_detections(det_file: Path, frames_root: Path | None, label_filter
 
 # --------------------------------------------------------------------------- #
 def main() -> int:
+    # OCR text carries arbitrary Unicode (accents, combining marks). A cp1252
+    # console or redirect on Windows crashes the whole run on the first such
+    # char in a diagnostic print -- so make stdout/stderr lossy-utf8. Logging
+    # must never kill the pipeline. (Output files use an explicit utf-8 write.)
+    for _stream in (sys.stdout, sys.stderr):
+        if hasattr(_stream, "reconfigure"):
+            _stream.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(
         description="OCR book-spine titles and match them to free book metadata.")
     src = ap.add_mutually_exclusive_group(required=True)
@@ -427,6 +434,9 @@ def main() -> int:
     ap.add_argument("--checkpoint", type=int, default=100,
                     help="write titles.json every N spines so a killed run keeps "
                          "its progress (0 = write only at the end)")
+    ap.add_argument("--resume", action="store_true",
+                    help="skip spines already present in --out, so a crashed or "
+                         "killed run continues instead of re-OCR'ing from zero")
     ap.add_argument("--provider", choices=["openlibrary", "googlebooks", "both"],
                     default="openlibrary")
     ap.add_argument("--langs", nargs="+", default=["en"], help="EasyOCR languages")
@@ -459,6 +469,19 @@ def main() -> int:
     if args.debug_crops:
         args.debug_crops.mkdir(parents=True, exist_ok=True)
 
+    # Resume: load whatever a prior (crashed/killed) run already wrote and skip
+    # those sources below, so we continue instead of re-OCR'ing from zero. The
+    # OCR pass is the expensive step; re-reading detections for the rest is cheap.
+    prior_records, done = [], set()
+    if args.resume and args.out.exists():
+        try:
+            prior_records = json.loads(args.out.read_text(encoding="utf-8"))
+            done = {r.get("source") for r in prior_records if r.get("source")}
+            print(f"[resume] {len(done)} spines already in {args.out}; skipping them")
+        except (json.JSONDecodeError, OSError) as e:
+            print(f"[resume] could not load {args.out} ({e}); starting fresh")
+            prior_records = []
+
     if args.from_titles:
         # Lookup-only replay: the OCR pass is the expensive step (GPU, ~minutes);
         # retrieval policy changes should not repeat it.
@@ -480,6 +503,8 @@ def main() -> int:
 
         def reads():
             for sid, crop in source:
+                if sid in done:
+                    continue                  # already processed in a prior run
                 if args.debug_crops is not None:
                     cv2.imwrite(str(args.debug_crops / f"{sid.replace('#', '_')}.png"),
                                 crop)
@@ -498,7 +523,8 @@ def main() -> int:
                        encoding="utf-8")
         tmp.replace(args.out)
 
-    records, matched = [], 0
+    records = list(prior_records)
+    matched = sum(1 for r in prior_records if r.get("match"))
     for i, (sid, text, conf, angle, engine) in enumerate(reads()):
         rec = {"source": sid,
                "ocr": {"text": text, "confidence": round(conf, 3),
