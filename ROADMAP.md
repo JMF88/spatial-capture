@@ -13,17 +13,17 @@ and where it heads. It doubles as the honest scope statement for the repo.
 | Capture QA gate (`pipeline/rate_capture.py`) | **done, tested, and corrected by real data** — grades a capture before the GPU. Rejected one real capture (confirmed right downstream) and *failed* nine good ones (confirmed wrong, fixed). Measures the camera, not the room — see ARCHITECTURE §2b |
 | Classifier train/eval/infer (`understanding/classify`) | **done, validated** end-to-end on the real torch/timm stack |
 | Open-vocab detector (`understanding/detect.py`) | **done**; verified API; smoke-tested on a sample image |
-| OCR + book lookup (`understanding/ocr_titles.py`) | **run on real crops** — the honest arc: **0/32** resolved on the gate-rejected capture; 4 titles on the reshoot's frames once retrieval was the only wall; after the retrieval rework (bounded query ladder + two-view scoring, threshold unmoved) on 4K crops: **55 matches, ~15 real unique titles** — most of the fantasy shelf by name. Remaining wall: thin/ornate spines yield no OCR read at all. See ARCHITECTURE §8. |
+| OCR + book lookup (`understanding/ocr_titles.py`) | **run on real crops** — the honest arc: **0/32** resolved on the gate-rejected capture; 4 titles on the reshoot's frames once retrieval was the only wall; after the retrieval rework (bounded query ladder + two-view scoring, threshold unmoved) and a full OCR pass over the 638 4K frames: **820/3044 spine reads matched → 21 titled objects** in the scene graph, surfaced on the spines in the live viewer. Remaining wall: thin/ornate spines yield no OCR read at all. See ARCHITECTURE §8. |
 | Spine→title match policy (`understanding/matching.py`) | **done, tested** — coverage-scaled containment; killed a real false positive (0.900 → 0.256) with recall intact |
 | Splat — COLMAP → Brush lane | **done, proven on the real capture** — 354/354 frames registered (0.810 px mean reprojection), 1,342,519 Gaussians in 8.8 min, cleaned to 1,019,159 (75.9%), compressed to a 9.5 MB SOG |
 | Splat — Postshot lane | doc'd; splat export is paywalled — demoted to a poses fallback |
 | Splat — open lane (VGGT→gsplat) | scripted + documented; CUDA build, run after the demo is safe |
-| Queryable web viewer (`docs/viewer`) | **done, verified headless** — orbit + measure + search→3D highlight + passphrase gate; **zero-CDN** (deps vendored, renders with every external host blocked) |
+| Queryable web viewer (`docs/viewer`) | **done, verified headless, live** — orbit/measure/pan + search & one-click category legend → 3D highlight, real book titles on the spines, rigid-body **physics** (quake/blast on the actual capture), one-button cinematic **tour**, immersive **WebXR "Enter VR,"** passphrase gate; **zero-CDN** (deps vendored, renders with every external host blocked) |
 | Metric calibration (`docs/viewer/scale.js`) | **built; validation pending a real measurement** — one known length → real units scene-wide; shareable via `?scale=`; reports its own error |
 | Semantic fusion (`understanding/fusion`) | **done, tested** — lifts 2D detections into a 3D scene graph (scene.json) |
 | Query CLI (`understanding/query.py`) | **done, tested** — terminal + `--json` for an agent |
 | Orchestrator + eval gate (`pipeline/run.py`, `gate.py`) | **done, tested** — config-driven, threshold-gated |
-| Test suite + CI (`tests/`, `.github`) | **green locally; never pushed** — 91 tests, ruff. Several are built from real failures rather than invented ones. |
+| Test suite + CI (`tests/`, `.github`) | **green, live** — 96 tests, ruff. Several are built from real failures rather than invented ones. |
 | Classifier → ONNX (`export_onnx.py`) | **done** — torch↔onnx parity verified (browser-ready) |
 | Capture app (`docs/app`) | **done, verified headless** — Trove: capture coach + WiFi import + collection + object catalog (installable PWA). Not a camera, by platform necessity — see README. |
 | Docs (README / ARCHITECTURE / ROADMAP / CAPTURE_GUIDE) | authored |
@@ -34,9 +34,10 @@ _(Kept current as milestones land.)_
 
 - **M0 — repo + pipeline code (no capture needed).** Everything runnable, documented,
   validated with synthetic/sample data. Done.
-- **M1 — first real capture.** Bookshelf (object). Substantially done: capture shot,
-  frames → COLMAP → Brush → cleaned → compressed to a 9.5 MB SOG that renders in the
-  repo's viewer. ← we are here. Remaining: publish decision + live URL.
+- **M1 — first real capture.** Bookshelf (object). **Done + published live.** Capture shot,
+  frames → COLMAP → poses; the shipped model is a 4K reshoot trained via gsplat (MCMC),
+  cleaned + compressed, published encrypted (passphrase-gated) with object search, real
+  titles, physics and immersive VR. ← done.
 - **M2 — the enclosure.** Whole office, inside-out. The hard case that matters for real walkthroughs.
 - **M3 — understanding on real frames.** Detect books/objects → train the classifier
   on real spine crops → OCR reads titles → results surfaced beside the splat.
@@ -55,12 +56,18 @@ _(Kept current as milestones land.)_
 | Classifier on real books | not started | needs a capture the gate accepts |
 | OCR titles | **run, honest result** | 38 book detections → 32 spine reads, human-legible, **0 resolved**. Isolated the chain: lookup is exact on clean text, retrieval is the wall on noisy reads. Fixed a false-positive bug it exposed (see ARCHITECTURE §8). Reworked retrieval (one garbled token no longer zeroes a query); on the reshoot's 4K crops: **55 matches, ~15 real unique titles**, 13 titled objects in the scene graph. |
 | VGGT→gsplat open lane | blocked at the trainer | COLMAP 4.1.0 is installed and carried the real capture (354/354 registered), so poses are solved; gsplat still cannot compile — no CUDA toolkit, no MSVC. The open lane needs a toolchain install, not just a GPU |
+| Live publish (v1 + feature wave) | **live** | Encrypted 4K reshoot + object search published to GitHub Pages, then a feature wave: real book titles, one-click category legend, rigid-body physics (quake/blast), cinematic tour, immersive **WebXR Enter-VR**, shelf backdrop, favicon. Viewer verified headless at each step; OCR hardened (atomic checkpoint + resume) after a real interrupted run. |
 
 ## Horizon
 
-- **AR headset overlay.** The same pipeline made real-time and head-mounted:
-  capture → reconstruct → detect/classify → overlay in view. This repo is the honest
-  step 1. Not a 2-day build; a roadmap conversation.
+- **AR/VR headset.** Immersive **WebXR "Enter VR"** now ships in the viewer — stand inside
+  the capture on a headset straight from the browser, no app install. The next step is the AR
+  direction: the same pipeline made real-time and head-mounted, overlaying detect/classify
+  results in view. This repo is the honest step 1. Not a 2-day build; a roadmap conversation.
+- **Composited high-fidelity + interactive physics.** Capture the environment clean (empty
+  shelf) and props individually at high detail, then composite — real collision surfaces and
+  crisp objects instead of one soft monolithic splat, and a scene you can manipulate and
+  simulate. Turns a static capture into a manipulable set.
 - **Digital twins / measurement.** Reference-based calibration has landed (`scale.js`):
   one known length in the shot makes the whole scene dimensioned, and the viewer states
   its own error rather than implying precision. What is still ahead is *geometry* you can
