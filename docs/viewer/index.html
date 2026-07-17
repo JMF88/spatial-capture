@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Spatial Capture - Splat Viewer</title>
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
 <!--
   Self-hosted 3D Gaussian-splat viewer. Renders ./assets/scene.ply (or
   .splat/.spz/.sog/.ksplat) with orbit controls, a 2-point measurement overlay,
@@ -129,6 +130,8 @@
   <button id="btnQuake" disabled title="Shake the shelf so its contents tumble off under gravity">Quake</button>
   <button id="btnBlast" disabled title="Fling every segmented object radially outward">Blast</button>
   <button id="btnResetPhys" disabled title="Return every object to its shelf position">Reset</button>
+  <button id="btnTour" title="Cinematic auto-orbit; any interaction stops it">Tour</button>
+  <button id="btnVR" style="display:none" title="Walk through the capture in a VR headset">Enter VR</button>
 </div>
 <div id="panel">
   <input id="q" type="search" placeholder="Search objects... (e.g. book, plant, lamp)" autocomplete="off">
@@ -165,11 +168,13 @@
 <script type="module">
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { SparkRenderer, SplatMesh } from "@sparkjsdev/spark";
+import { SparkRenderer, SplatMesh, SparkXr } from "@sparkjsdev/spark";
 import { decryptAsset, isEncrypted } from "./decrypt.js";
 import { UNITS, DEFAULT_UNIT, metresPerUnit, formatDistance, relativeError,
          encodeCalibration, decodeCalibration } from "./scale.js";
 import { installPhysics } from "./physics.js";
+import { initTour } from "./tour.js";
+import { initVR } from "./vr.js";
 
 const params = new URLSearchParams(location.search);
 const SRC = params.get("src") || "./assets/scene.sog.enc"; // .ply/.splat/.spz/.sog/.ksplat/.enc
@@ -202,6 +207,11 @@ controls.dampingFactor = 0.08;
 // headless harness read/set an identical camera pose across loads.
 window.__camera = camera;
 window.__controls = controls;
+
+// Cinematic auto-orbit (captures the current pose on start; needs only camera+controls).
+// VR is installed later in the splat onLoad (it needs the loaded mesh).
+const tour = initTour({ THREE, camera, controls });
+let vr = null;
 
 // ?clamp=<deg> restricts orbit to a frontal cone (see applyOrbitClamp). 0/absent = free.
 const CLAMP_DEG = parseFloat(params.get("clamp") || "0") || 0;
@@ -309,6 +319,13 @@ async function resolveSource(src) {
             document.getElementById(id).disabled = false;
           console.info("[physics] installed", JSON.stringify(api.stats));
         }).catch((e) => console.error("[physics] install failed:", e));
+        // WebXR "Enter VR" (for a headset). Reads the room's up-axis from the loaded
+        // scene view at enter-time; the button self-hides where XR is unsupported.
+        try {
+          vr = initVR({ THREE, SparkXr, renderer, scene, camera, controls, splat,
+            getUp: () => (sceneView && sceneView.up) || [0.82412, -0.52228, 0.21921],
+            buttonEl: document.getElementById("btnVR") });
+        } catch (e) { console.error("[vr] init failed:", e); }
       },
     });
     flipGroup.add(splat);
@@ -661,7 +678,10 @@ const pointer = new THREE.Vector2();
 const pickPlane = new THREE.Plane();
 let downX = 0, downY = 0;
 
-canvas.addEventListener("pointerdown", e => { downX = e.clientX; downY = e.clientY; });
+canvas.addEventListener("pointerdown", e => { downX = e.clientX; downY = e.clientY;
+  if (tour.isActive()) { tour.cancel(); document.getElementById("btnTour").classList.remove("active"); } });
+canvas.addEventListener("wheel", () => {
+  if (tour.isActive()) { tour.cancel(); document.getElementById("btnTour").classList.remove("active"); } }, { passive: true });
 canvas.addEventListener("pointerup", e => {
   if (!measureMode || !e.isPrimary) return;               // ignore secondary pinch fingers
   if (e.pointerType === "mouse" && e.button !== 0) return; // ignore right/middle click
@@ -787,10 +807,16 @@ btnBlast.onclick = () => { if (window.__physics) { window.__physics.blast();
 btnResetPhys.onclick = () => { if (window.__physics) { window.__physics.reset();
   btnQuake.classList.remove("active"); btnBlast.classList.remove("active"); } };
 
+const btnTour = document.getElementById("btnTour");
+btnTour.onclick = () => { tour.toggle(); btnTour.classList.toggle("active", tour.isActive()); };
+
 // ---- render loop ----
+const _tourClock = new THREE.Clock();
 renderer.setAnimationLoop(() => {
   updateTween();
-  controls.update();
+  const dt = _tourClock.getDelta();
+  if (tour.isActive()) tour.onFrame(dt); else controls.update();
+  if (vr) vr.onFrame();
   // Step the rigid-body sim + re-bake the splats only while an effect is live.
   // When idle nothing re-bakes, so the viewer keeps its normal still-frame cost.
   if (window.__physics && window.__physics.active) window.__physics.tick();

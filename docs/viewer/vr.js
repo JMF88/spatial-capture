@@ -16,7 +16,7 @@
 //                       splat, up: SCENE_UP, buttonEl: document.getElementById("btnVR") });
 //   ... in setAnimationLoop, when presenting: vr.onFrame();
 
-export function initVR({ THREE, SparkXr, renderer, scene, camera, controls, splat, up, buttonEl,
+export function initVR({ THREE, SparkXr, renderer, scene, camera, controls, splat, getUp, buttonEl,
                          targetHeightMeters = 1.8, eyeHeightMeters = 1.6 }) {
   // --- 1. Make the world upright + life-sized under an xrGroup ----------------
   // The splat currently sits in `scene` (under its flipGroup). For XR we parent a
@@ -27,8 +27,10 @@ export function initVR({ THREE, SparkXr, renderer, scene, camera, controls, spla
   xrGroup.visible = false;
   scene.add(xrGroup);
 
-  const capUp = new THREE.Vector3(up[0], up[1], up[2]).normalize();
-  const orient = new THREE.Quaternion().setFromUnitVectors(capUp, new THREE.Vector3(0, 1, 0));
+  // capture up (== gravity-up of the room) is read at enter-time from getUp(), so it
+  // reflects whatever scene view has loaded by then.
+  let capUp = new THREE.Vector3(0, 1, 0);
+  let orient = new THREE.Quaternion();
 
   // Scale so the capture's vertical extent ~= targetHeightMeters (uncalibrated
   // guess until the 2-click metric calibration exists; feels roughly life-sized).
@@ -68,6 +70,10 @@ export function initVR({ THREE, SparkXr, renderer, scene, camera, controls, spla
   });
 
   function onEnter() {
+    // Resolve the room's up now (scene view is loaded by the time a user clicks).
+    const u = (getUp && getUp()) || [0, 1, 0];
+    capUp.set(u[0], u[1], u[2]).normalize();
+    orient.setFromUnitVectors(capUp, new THREE.Vector3(0, 1, 0));
     // World: reparent the splat's group is invasive; instead we place an upright,
     // scaled COPY-of-transform on xrGroup and move the actual splat under it.
     const { scale } = computeWorldTransform();
