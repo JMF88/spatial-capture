@@ -126,6 +126,9 @@
   <button id="btnMeasure">Measure</button>
   <button id="btnScale" title="Measure a known length first, then set its real size">Set scale</button>
   <button id="btnObjects" class="active">Objects</button>
+  <button id="btnQuake" disabled title="Shake the shelf so its contents tumble off under gravity">Quake</button>
+  <button id="btnBlast" disabled title="Fling every segmented object radially outward">Blast</button>
+  <button id="btnResetPhys" disabled title="Return every object to its shelf position">Reset</button>
 </div>
 <div id="panel">
   <input id="q" type="search" placeholder="Search objects... (e.g. book, plant, lamp)" autocomplete="off">
@@ -166,6 +169,7 @@ import { SparkRenderer, SplatMesh } from "@sparkjsdev/spark";
 import { decryptAsset, isEncrypted } from "./decrypt.js";
 import { UNITS, DEFAULT_UNIT, metresPerUnit, formatDistance, relativeError,
          encodeCalibration, decodeCalibration } from "./scale.js";
+import { installPhysics } from "./physics.js";
 
 const params = new URLSearchParams(location.search);
 const SRC = params.get("src") || "./assets/scene.sog.enc"; // .ply/.splat/.spz/.sog/.ksplat/.enc
@@ -295,6 +299,16 @@ async function resolveSource(src) {
         if (!viewApplied) frameToObject(splat);   // a scene-declared view takes precedence
         if (CLAMP_DEG > 0) applyOrbitClamp(CLAMP_DEG);
         console.info("[spatial-capture] splat loaded:", SRC);
+        // Rigid-body physics demo (earthquake / blast). Independent of the
+        // overlay: it reads the offline segmentation in assets/_anim_objects.json
+        // and drives a GPU per-splat transform. Failure here must not break the
+        // viewer, so it's guarded and the buttons stay disabled if it throws.
+        installPhysics(splat).then((api) => {
+          window.__physics = api;
+          for (const id of ["btnQuake", "btnBlast", "btnResetPhys"])
+            document.getElementById(id).disabled = false;
+          console.info("[physics] installed", JSON.stringify(api.stats));
+        }).catch((e) => console.error("[physics] install failed:", e));
       },
     });
     flipGroup.add(splat);
@@ -760,10 +774,26 @@ btnObjects.onclick = () => {
   objGroup.visible = objectsVisible;
 };
 
+// ---- physics buttons (quake / blast / reset) ----
+// window.__physics is installed asynchronously in the splat onLoad; each handler
+// no-ops until then, and the buttons ship disabled until install resolves.
+const btnQuake = document.getElementById("btnQuake");
+const btnBlast = document.getElementById("btnBlast");
+const btnResetPhys = document.getElementById("btnResetPhys");
+btnQuake.onclick = () => { if (window.__physics) { window.__physics.quake();
+  btnQuake.classList.add("active"); btnBlast.classList.remove("active"); } };
+btnBlast.onclick = () => { if (window.__physics) { window.__physics.blast();
+  btnBlast.classList.add("active"); btnQuake.classList.remove("active"); } };
+btnResetPhys.onclick = () => { if (window.__physics) { window.__physics.reset();
+  btnQuake.classList.remove("active"); btnBlast.classList.remove("active"); } };
+
 // ---- render loop ----
 renderer.setAnimationLoop(() => {
   updateTween();
   controls.update();
+  // Step the rigid-body sim + re-bake the splats only while an effect is live.
+  // When idle nothing re-bakes, so the viewer keeps its normal still-frame cost.
+  if (window.__physics && window.__physics.active) window.__physics.tick();
   renderer.render(scene, camera);
   updateLabel();
   renderObjectLabels();
