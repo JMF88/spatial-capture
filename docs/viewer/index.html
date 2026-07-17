@@ -262,15 +262,19 @@ async function resolveSource(src) {
   if (!res.ok) throw new Error(`${res.status} fetching ${src}`);
   const buf = await res.arrayBuffer();
   if (!isEncrypted(buf)) return { url: src };   // named .enc but isn't -- let Spark try it
-  // Spark takes the format as a plain string, so recover it from the inner extension:
-  // scene.spz.enc -> "spz".
+  // Spark takes the format as an enum string, not the raw extension -- and it is NOT
+  // always the extension: a `.sog` is a zip-packed PC-SOGS bundle, which Spark calls
+  // "pcsogszip". Recover the inner extension (scene.sog.enc -> "sog") then map it to
+  // Spark's SplatFileType. Unknown -> undefined, and Spark auto-detects from the bytes.
   const ext = (src.replace(/\.enc$/i, "").match(/\.([a-z0-9]+)$/i)?.[1] || "ply").toLowerCase();
+  const EXT_TO_TYPE = { ply: "ply", spz: "spz", splat: "splat", ksplat: "ksplat", sog: "pcsogszip", rad: "rad" };
+  const fileType = EXT_TO_TYPE[ext];
   let msg = "";
   for (;;) {
     const phrase = await askPassphrase(msg);
     try {
       const plain = await decryptAsset(buf, phrase);
-      return { fileBytes: new Uint8Array(plain), fileType: ext };
+      return { fileBytes: new Uint8Array(plain), fileType };
     } catch (err) {
       // A malformed blob (bad KDF cost) is not a passphrase problem: re-prompting
       // would loop forever telling the user a lie. Only a GCM failure re-asks --
