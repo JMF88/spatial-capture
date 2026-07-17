@@ -49,6 +49,9 @@ docs/viewer/assets/*.ksplat
 # This rule must stay AFTER the un-ignore above: last match wins, and without it the
 # un-ignore drags every _probe.ply.enc back into the repo.
 docs/viewer/assets/_*
+# ...except the physics segmentation (category + bounding boxes, no sensitive content):
+# the live viewer fetches it to enable Quake/Blast, so it must ship.
+!docs/viewer/assets/_anim_objects.json
 # scene.json is fusion output (plaintext scene graph); published deliberately, not by default.
 docs/viewer/assets/scene.json
 passphrase.txt
