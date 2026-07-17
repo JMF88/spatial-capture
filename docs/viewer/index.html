@@ -168,7 +168,7 @@ import { UNITS, DEFAULT_UNIT, metresPerUnit, formatDistance, relativeError,
          encodeCalibration, decodeCalibration } from "./scale.js";
 
 const params = new URLSearchParams(location.search);
-const SRC = params.get("src") || "./assets/scene.ply"; // .ply/.splat/.spz/.sog/.ksplat
+const SRC = params.get("src") || "./assets/scene.sog.enc"; // .ply/.splat/.spz/.sog/.ksplat/.enc
 // No ?src= means we are falling back to the default asset, which the repo ships without.
 // Its absence is the expected state, not a failure, and the two must not render alike.
 const SRC_IS_DEFAULT = !params.get("src");

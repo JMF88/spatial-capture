@@ -2,9 +2,9 @@
 
 Capture a real enclosed space with a phone, reconstruct it as a **browser-viewable 3D Gaussian splat**, **understand what's in it**, and **ask it questions**. A reproducible, Windows-native pipeline that runs on a single consumer GPU.
 
-> **Status:** the pipeline is built and tested end to end — reconstruction, understanding, semantic fusion, a queryable viewer with metric calibration, an orchestrator + two eval gates, a test suite/CI, and a mobile capture app. **The first real capture has been shot, passed the QA gate with zero blockers** (nine passes, 4K, locked exposure — all nine MARGINAL, advisory warnings only), **and trained to a splat**: 1,342,519 Gaussians, cleaned to 1,019,159, compressed to a 9.5 MB SOG that renders in the repo's own viewer. No live demo link yet — publishing the asset is a pending decision, so the collection ships empty. Nothing in this repo is illustrative — when a scene appears, it's a real one. Built and tested on Windows 11 with an RTX 4070 Laptop (8 GB VRAM).
+> **Status:** the pipeline is built and tested end to end — reconstruction, understanding, semantic fusion, a queryable viewer with metric calibration, an orchestrator + two eval gates, a test suite/CI, and a mobile capture app. **A real capture is shot, reconstructed to a browser-orbitable Gaussian splat, and published — encrypted.** The code and the viewer are fully public; the scene is a real room, so the asset ships as ciphertext and decrypts in your browser with a passphrase (public code, private scene — nothing about the capture is sent anywhere). Open-vocabulary detection + 3D fusion recover the objects in the scene, so typing **"book"** in the viewer lights them up on the actual shelf. Built and tested on Windows 11 with an RTX 4070 Laptop (8 GB VRAM).
 
-**Live demo:** _(pending the publish decision — a GitHub Pages URL you open on any phone or laptop and orbit around)_
+**Live demo:** the viewer is public and passphrase-gated — [open it](https://jmf88.github.io/spatial-capture/viewer/?src=./assets/scene.sog.enc&scene=./assets/scene.public.json) and you'll see the gate; the passphrase is shared directly, not committed.
 
 ---
 
