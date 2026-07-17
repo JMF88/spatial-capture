@@ -54,15 +54,23 @@ export async function installPhysics(splat, objectsUrl = "./assets/_anim_objects
   const sMin = doc.scene_min, sMax = doc.scene_max;
   const sceneCentroid = new THREE.Vector3(
     (sMin[0] + sMax[0]) / 2, (sMin[1] + sMax[1]) / 2, (sMin[2] + sMax[2]) / 2);
+  // Floor: the level tumbled objects settle on. Derive it from the lowest fused
+  // OBJECT (its aabb bottom), NOT the raw scene box -- the scene box dips well
+  // below the shelf into floaters and void, which dropped the floor beneath the
+  // real floor of the room and let things pile into a pit under the shelf. The
+  // lowest object bottom is the bottom-shelf resting surface, ~ the room floor.
   let floorProj = Infinity;
-  for (let xi = 0; xi < 2; xi++)
-    for (let yi = 0; yi < 2; yi++)
-      for (let zi = 0; zi < 2; zi++) {
-        const corner = new THREE.Vector3(
-          xi ? sMax[0] : sMin[0], yi ? sMax[1] : sMin[1], zi ? sMax[2] : sMin[2]);
-        floorProj = Math.min(floorProj, corner.dot(up));
-      }
-  floorProj -= 0.05; // a hair below the lowest point so things land, not clip
+  const _fc = new THREE.Vector3();
+  for (const o of objects) {
+    if (!o.aabb) continue;
+    const mn = o.aabb.min, mx = o.aabb.max;
+    for (const x of [mn[0], mx[0]])
+      for (const y of [mn[1], mx[1]])
+        for (const z of [mn[2], mx[2]])
+          floorProj = Math.min(floorProj, _fc.set(x, y, z).dot(up));
+  }
+  if (!isFinite(floorProj)) floorProj = sMin.reduce((a, b, i) => a + b * up.getComponent(i), 0);
+  floorProj -= 0.02; // a hair of clearance so things land, not clip
 
   // ---- assign dynamic ids (1..K); static/background = 0 ---------------------
   // objMeta[i] describes object i from the json: its aabb (for segmentation),
