@@ -104,6 +104,24 @@
   .rrow .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .rrow .sc { color: #7d8590; font-variant-numeric: tabular-nums; }
   #rcount { color: #7d8590; padding: 2px 2px; min-height: 1em; }
+
+  /* category legend -- the parsed taxonomy, as one-click filters (reuse search path) */
+  #legend { background: #0d1117ee; border: 1px solid #30363d; border-radius: 8px;
+    backdrop-filter: blur(6px); overflow: hidden; }
+  #legend[open] { padding-bottom: 8px; }
+  #legend > summary { list-style: none; cursor: pointer; padding: 7px 10px; color: #9fb0c0;
+    font-size: 12px; text-transform: uppercase; letter-spacing: .04em; user-select: none; }
+  #legend > summary::-webkit-details-marker { display: none; }
+  #legend > summary::before { content: "\25B8  "; color: #7d8590; }
+  #legend[open] > summary::before { content: "\25BE  "; }
+  #chips { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 8px; max-height: 22vh; overflow-y: auto; }
+  .chip { background: #161b22; color: #c9d1d9; border: 1px solid #30363d; border-radius: 999px;
+    padding: 3px 9px; font: inherit; font-size: 12px; cursor: pointer; display: inline-flex;
+    gap: 5px; align-items: center; }
+  .chip:hover { border-color: #1f6feb; }
+  .chip.active { border-color: #f7b955; color: #f7b955; background: #1a1206; }
+  .chip .n { color: #7d8590; font-variant-numeric: tabular-nums; }
+  .chip.active .n { color: #f7b955cc; }
   #hint { position: fixed; bottom: 10px; left: 10px; opacity: .6; z-index: 5; }
   /* An uncalibrated reading is a number without a meaning; make it look like one. */
   .label.uncal { border-color: #30363d; color: #9fb0c0; }
@@ -135,6 +153,10 @@
 </div>
 <div id="panel">
   <input id="q" type="search" placeholder="Search objects... (e.g. book, plant, lamp)" autocomplete="off">
+  <details id="legend" open>
+    <summary>Categories</summary>
+    <div id="chips"></div>
+  </details>
   <div id="rcount"></div>
   <ul id="results"></ul>
 </div>
@@ -531,6 +553,46 @@ async function loadObjects(url) {
   window.__sceneObjects = objects.map(o => ({ id: o.id, label: o.label, category: o.category }));
   window.__objectsReady = true;
   console.info("[objects] loaded", objects.length, "objects from", url);
+  try { buildLegend(); } catch (e) { console.warn("[legend] skipped", e); }  // never block load
+}
+
+// Category legend: the parsed taxonomy the pipeline recovered, as one-click filters.
+// Each chip drives the SAME runQuery/focusObject path as typing the category name --
+// so there is one source of truth (the search box) and no new highlight logic.
+function buildLegend() {
+  const wrap = document.getElementById("chips");
+  const box = document.getElementById("legend");
+  if (!wrap || !box) return;
+  const counts = new Map();
+  for (const o of objects) {
+    const c = (o.category || "").trim();
+    if (c) counts.set(c, (counts.get(c) || 0) + 1);
+  }
+  const cats = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  if (!cats.length) { box.style.display = "none"; return; }
+  wrap.innerHTML = "";
+  for (const [cat, n] of cats) {
+    const b = document.createElement("button");
+    b.className = "chip";
+    b.dataset.cat = cat;
+    b.innerHTML = `${escapeHtml(cat)} <span class="n">${n}</span>`;
+    b.onclick = () => toggleCategory(cat, b);
+    wrap.appendChild(b);
+  }
+  window.__categories = cats.map(([category, count]) => ({ category, count }));
+  window.__legendReady = true;
+}
+
+// Click a chip -> run its category as a query; click the active chip again -> clear.
+function toggleCategory(cat, btn) {
+  const already = btn.classList.contains("active");
+  document.querySelectorAll("#chips .chip.active").forEach(c => c.classList.remove("active"));
+  const box = document.getElementById("q");
+  if (already) { box.value = ""; runQuery(""); return; }
+  btn.classList.add("active");
+  box.value = cat;
+  const hits = runQuery(cat);
+  if (hits.length) focusObject(hits[0].o.id);
 }
 
 function scoreObject(o, tokens) {
@@ -648,7 +710,10 @@ canvas.addEventListener("pointerup", e => {
 
 // ---- search box wiring ----
 const qEl = document.getElementById("q");
-qEl.addEventListener("input", () => runQuery(qEl.value));   // live filter/highlight
+qEl.addEventListener("input", () => {                       // live filter/highlight
+  document.querySelectorAll("#chips .chip.active").forEach(c => c.classList.remove("active"));
+  runQuery(qEl.value);
+});
 qEl.addEventListener("keydown", e => {
   if (e.key !== "Enter") return;
   const hits = runQuery(qEl.value);
