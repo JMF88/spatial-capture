@@ -203,7 +203,7 @@ const SRC = params.get("src") || "./assets/scene.sog.enc"; // .ply/.splat/.spz/.
 // No ?src= means we are falling back to the default asset, which the repo ships without.
 // Its absence is the expected state, not a failure, and the two must not render alike.
 const SRC_IS_DEFAULT = !params.get("src");
-const SCENE_JSON = params.get("scene") || "./assets/scene.json";
+const SCENE_JSON = params.get("scene") || "./assets/scene.public.json";
 const statusEl = document.getElementById("status");
 const labelsEl = document.getElementById("labels");
 
