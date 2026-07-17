@@ -226,6 +226,8 @@ scene.add(spark);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
+controls.rotateSpeed = -0.9;          // invert drag-orbit direction (grab-the-model feel)
+controls.screenSpacePanning = true;   // right-drag / two-finger pans the orbit centroid in view plane
 // Headless-testing hook, same intent as window.__sceneObjects below: lets a
 // headless harness read/set an identical camera pose across loads.
 window.__camera = camera;
@@ -711,6 +713,27 @@ canvas.addEventListener("pointerup", e => {
   objRaycaster.params.Sprite = { threshold: 0 };
   const hit = objRaycaster.intersectObjects(objGroup.children, false)[0];
   if (hit) focusObject(hit.object.userData.objId);
+});
+
+// double-click moves the orbit centroid: pivot on the object under the cursor,
+// else on where the view ray meets the plane through the current target. Pairs
+// with right-drag panning for full control of what you orbit around.
+canvas.addEventListener("dblclick", e => {
+  if (measureMode) return;
+  objPointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  objRaycaster.setFromCamera(objPointer, camera);
+  objRaycaster.params.Sprite = { threshold: 0 };
+  const p = new THREE.Vector3();
+  const hit = objectsVisible ? objRaycaster.intersectObjects(objGroup.children, false)[0] : null;
+  if (hit) hit.object.getWorldPosition(p);
+  else {
+    const n = new THREE.Vector3().subVectors(camera.position, controls.target).normalize();
+    const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(n, controls.target);
+    if (!objRaycaster.ray.intersectPlane(plane, p)) return;
+  }
+  tour.cancel();
+  controls.target.copy(p);
+  controls.update();
 });
 
 // ---- search box wiring ----
