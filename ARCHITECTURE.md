@@ -284,10 +284,35 @@ cannot:** fit a smooth trend, measure the residual. On one shelf, same subject:
 - **Why this way:** the structured tier is dependency-free, instant, and unit-testable — and
   it's what makes a capture *useful* rather than merely pretty. One rubric in both places means
   the terminal and the browser never disagree.
-- **Failure modes:** lexical matching misses synonyms ("couch" vs "sofa"); the documented next
-  step is a CLIP-embedding tier behind the same API.
+- **Failure modes:** lexical matching misses synonyms ("couch" vs "sofa"). A first mitigation
+  ships now — a category-synonym expansion (`understanding/enrich_keywords.py`) folds
+  "toy"→figurine, "photo"→picture-frame into each object's keywords at fusion time — but the
+  general fix is still a CLIP-embedding tier behind the same API.
 - **Scale:** this is the natural seam for an LLM — detection + OCR already emit structured
   output, so an agent can ask the scene questions and get back anchors.
+
+### 11. Inhabit + simulate — the viewer's interaction layer (`docs/viewer/`)
+Reconstruction makes the room *renderable*; understanding makes it *queryable*; this layer
+makes it *usable*. All three read the same fused scene graph, so nothing here re-derives geometry.
+- **Legend + search (inhabit).** The viewer surfaces the recovered taxonomy as one-click
+  category chips (book, figurine, box, statue, …) and a search box; both drive the identical
+  query rubric from stage 10, so a viewer explores by clicking a category or typing a word and
+  the camera frames the hit. The point: the parse is *legible* — you can see the scene was
+  understood, not just photographed.
+- **Physics (simulate).** `physics.js` gives each fused object a rigid body in a small engine
+  (cannon-es), leaves the shelf static, and drives a GPU per-splat transform so the splats move
+  with their bodies — a "quake" tips the contents off under gravity, a "blast" flings them
+  radially, reset restores them. It is a demo, not a solver: the value is the *seam* it proves —
+  a fused scene graph is a handle to make a capture behave, which is the honest first rung of
+  simulation/training on real spaces rather than authored ones.
+- **VR (inhabit, head-mounted).** `vr.js` enters the same reconstruction through WebXR: it makes
+  the capture's tilted, unit-scaled frame upright, roughly life-sized and floor-aligned, then puts
+  the user inside it. Comfort, scale and framerate are only judgeable on a headset; the code is
+  built to that contract and the harness asserts XR-readiness. This is the AR-overlay rung from the
+  one-paragraph summary, made literal.
+- **Why this way:** each addition is additive over the scene graph and fails closed (the legend
+  builder is wrapped so it can never block a render), so the photoreal core stays the source of
+  truth and the interaction layer is where the capability becomes a thing a person can *do*.
 
 ## The operator layer — `pipeline/run.py`, `pipeline/gate.py`, `tests/`
 
