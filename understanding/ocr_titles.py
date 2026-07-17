@@ -424,6 +424,9 @@ def main() -> int:
     ap.add_argument("--label", default="book",
                     help="detection label to OCR (substring match); box mode")
     ap.add_argument("--out", type=Path, default=Path("titles.json"))
+    ap.add_argument("--checkpoint", type=int, default=100,
+                    help="write titles.json every N spines so a killed run keeps "
+                         "its progress (0 = write only at the end)")
     ap.add_argument("--provider", choices=["openlibrary", "googlebooks", "both"],
                     default="openlibrary")
     ap.add_argument("--langs", nargs="+", default=["en"], help="EasyOCR languages")
@@ -483,6 +486,18 @@ def main() -> int:
                 text, conf, angle = ocr_spine(reader, crop, args.min_side)
                 yield sid, text, conf, angle, "easyocr"
 
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+
+    def flush():
+        # Atomic checkpoint: write to a temp then replace, so an interrupted run
+        # never leaves a half-written titles.json and never loses everything. The
+        # OCR pass is the expensive step (GPU, minutes-to-hours); writing only at
+        # the very end means one kill throws all of it away.
+        tmp = args.out.with_name(args.out.name + ".tmp")
+        tmp.write_text(json.dumps(records, indent=2, ensure_ascii=False),
+                       encoding="utf-8")
+        tmp.replace(args.out)
+
     records, matched = [], 0
     for i, (sid, text, conf, angle, engine) in enumerate(reads()):
         rec = {"source": sid,
@@ -504,10 +519,10 @@ def main() -> int:
                else "-> (no confident match)")
         print(f"[{i:03d}] {sid}: '{text}' conf={conf:.2f} @{angle} {tag}")
         records.append(rec)
+        if args.checkpoint and (i + 1) % args.checkpoint == 0:
+            flush()
 
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps(records, indent=2, ensure_ascii=False),
-                        encoding="utf-8")
+    flush()
     print(f"\n{matched}/{len(records)} spines matched. Wrote {args.out} "
           f"(API: {lookup.calls_live} live, {lookup.calls_cached} cached)")
     return 0
