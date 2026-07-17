@@ -25,7 +25,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     -0.0524,
@@ -55,7 +57,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     -0.1617,
@@ -85,7 +89,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     0.7704,
@@ -115,7 +121,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     -0.9998,
@@ -145,7 +153,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     -0.8224,
@@ -175,7 +185,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     0.5869,
@@ -205,7 +217,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     -0.6424,
@@ -235,7 +249,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     -1.1793,
@@ -265,7 +281,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     -0.6972,
@@ -295,7 +313,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     -0.3474,
@@ -325,7 +345,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     1.0156,
@@ -355,7 +377,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     0.5758,
@@ -385,7 +409,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     0.4284,
@@ -415,7 +441,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     -0.3616,
@@ -445,7 +473,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     0.3595,
@@ -475,7 +505,14 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "colony",
+    "last",
+    "the",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     -0.8349,
@@ -498,14 +535,18 @@
    "source": {
     "frames": [],
     "support": 0
-   }
+   },
+   "title": "The Last Colony",
+   "text": "THE LAST COLONY   ohn Scalzi"
   },
   {
    "id": "obj_0016",
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     0.6134,
@@ -535,7 +576,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     0.28,
@@ -565,7 +608,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     -0.4349,
@@ -595,7 +640,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     0.482,
@@ -625,7 +672,12 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "elantris",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     0.2915,
@@ -648,14 +700,22 @@
    "source": {
     "frames": [],
     "support": 0
-   }
+   },
+   "title": "Elantris",
+   "text": "ELANTRIS"
   },
   {
    "id": "obj_0021",
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "harry",
+    "potter",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     -0.4926,
@@ -678,14 +738,20 @@
    "source": {
     "frames": [],
     "support": 0
-   }
+   },
+   "title": "Harry Potter",
+   "text": "MNNICA Fce HARRY POTTER"
   },
   {
    "id": "obj_0022",
    "label": "figurine",
    "category": "figurine",
    "keywords": [
-    "figurine"
+    "figurine",
+    "figure",
+    "toy",
+    "collectible",
+    "character"
    ],
    "position": [
     1.1427,
@@ -715,7 +781,15 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "feral",
+    "gate",
+    "gods",
+    "the",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     -0.0611,
@@ -738,14 +812,18 @@
    "source": {
     "frames": [],
     "support": 0
-   }
+   },
+   "title": "The Gate of the Feral Gods",
+   "text": "THE GATE OF THE FERAL GODS DINNMMAN MAT"
   },
   {
    "id": "obj_0024",
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     -0.1838,
@@ -775,7 +853,17 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "and",
+    "book",
+    "child",
+    "cursed",
+    "harry",
+    "potter",
+    "the",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     -0.3863,
@@ -798,14 +886,18 @@
    "source": {
     "frames": [],
     "support": 0
-   }
+   },
+   "title": "Harry Potter and the Cursed Child",
+   "text": "I HARRY POTTER 6 61 AND THE CURSED CHILD"
   },
   {
    "id": "obj_0026",
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     0.4356,
@@ -835,7 +927,10 @@
    "label": "statue",
    "category": "statue",
    "keywords": [
-    "statue"
+    "statue",
+    "figure",
+    "sculpture",
+    "bust"
    ],
    "position": [
     1.1253,
@@ -865,7 +960,17 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "jordan's",
+    "robert",
+    "the",
+    "time",
+    "wheel",
+    "world",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     -1.1173,
@@ -888,14 +993,18 @@
    "source": {
     "frames": [],
     "support": 0
-   }
+   },
+   "title": "The world of Robert Jordan's the wheel of time",
+   "text": "ROBERT JoRDAN THE WHEEL OF Time Tne WoRLD OF & TFRESA PATTERSON RoBERT JoRdaN's"
   },
   {
    "id": "obj_0029",
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     -0.0702,
@@ -925,7 +1034,9 @@
    "label": "box",
    "category": "box",
    "keywords": [
-    "box"
+    "box",
+    "container",
+    "case"
    ],
    "position": [
     -1.098,
@@ -955,7 +1066,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     -0.1271,
@@ -985,7 +1098,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     -0.755,
@@ -1015,7 +1130,16 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "burn",
+    "fat,",
+    "feed",
+    "muscle",
+    "the",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     -1.2505,
@@ -1038,14 +1162,18 @@
    "source": {
     "frames": [],
     "support": 0
-   }
+   },
+   "title": "Burn the fat, feed the muscle",
+   "text": "BURN THE FAT  FEED THE MUSCLE Tom Venuto"
   },
   {
    "id": "obj_0034",
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     0.7182,
@@ -1075,7 +1203,13 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "host",
+    "the",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     -0.9436,
@@ -1098,14 +1232,21 @@
    "source": {
     "frames": [],
     "support": 0
-   }
+   },
+   "title": "The Host",
+   "text": "the host STEPHENIE MEYER"
   },
   {
    "id": "obj_0036",
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "rowling",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     -0.5812,
@@ -1128,14 +1269,24 @@
    "source": {
     "frames": [],
     "support": 0
-   }
+   },
+   "title": "JK Rowling",
+   "text": "JK ROWLING"
   },
   {
    "id": "obj_0037",
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "bedlam",
+    "book",
+    "bride",
+    "eye",
+    "the",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     0.0432,
@@ -1158,14 +1309,20 @@
    "source": {
     "frames": [],
     "support": 0
-   }
+   },
+   "title": "The Eye of the Bedlam Bride",
+   "text": "THE EYe Of tHE Man BEDLAM BRIDE DINNIAN"
   },
   {
    "id": "obj_0038",
    "label": "figurine",
    "category": "figurine",
    "keywords": [
-    "figurine"
+    "figurine",
+    "figure",
+    "toy",
+    "collectible",
+    "character"
    ],
    "position": [
     0.0986,
@@ -1195,7 +1352,15 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "emerald",
+    "sea",
+    "the",
+    "tress",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     0.8468,
@@ -1218,14 +1383,18 @@
    "source": {
     "frames": [],
     "support": 0
-   }
+   },
+   "title": "Tress of the Emerald Sea",
+   "text": "TRESS Of ThE BRANDON EMERALD SEA ANDERSON"
   },
   {
    "id": "obj_0040",
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     -0.2563,
@@ -1255,7 +1424,14 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "chess",
+    "modern",
+    "openings",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     -1.345,
@@ -1278,14 +1454,23 @@
    "source": {
     "frames": [],
     "support": 0
-   }
+   },
+   "title": "Modern chess openings",
+   "text": "Modern Chess Openings"
   },
   {
    "id": "obj_0042",
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "and",
+    "book",
+    "truth",
+    "wind",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     0.1827,
@@ -1308,14 +1493,26 @@
    "source": {
     "frames": [],
     "support": 0
-   }
+   },
+   "title": "Wind and Truth",
+   "text": "WIND and TRUTH"
   },
   {
    "id": "obj_0043",
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "and",
+    "book",
+    "harry",
+    "order",
+    "phoenix",
+    "potter",
+    "the",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     -0.6855,
@@ -1338,14 +1535,18 @@
    "source": {
     "frames": [],
     "support": 0
-   }
+   },
+   "title": "Harry Potter and the Order of the Phoenix",
+   "text": "AND THE (er ORDE R 01 THE PHOENIX"
   },
   {
    "id": "obj_0044",
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     0.3001,
@@ -1375,7 +1576,11 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     -0.125,
@@ -1405,7 +1610,13 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "meyer",
+    "stephenie",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     -1.077,
@@ -1428,14 +1639,20 @@
    "source": {
     "frames": [],
     "support": 0
-   }
+   },
+   "title": "Stephenie Meyer",
+   "text": "STEPHENIE MEYER"
   },
   {
    "id": "obj_0047",
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     -0.0023,
@@ -1465,7 +1682,11 @@
    "label": "figurine",
    "category": "figurine",
    "keywords": [
-    "figurine"
+    "figurine",
+    "figure",
+    "toy",
+    "collectible",
+    "character"
    ],
    "position": [
     0.1253,
@@ -1495,7 +1716,9 @@
    "label": "box",
    "category": "box",
    "keywords": [
-    "box"
+    "box",
+    "container",
+    "case"
    ],
    "position": [
     0.2075,
@@ -1525,7 +1748,9 @@
    "label": "box",
    "category": "box",
    "keywords": [
-    "box"
+    "box",
+    "container",
+    "case"
    ],
    "position": [
     -0.947,
@@ -1555,7 +1780,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     -1.0862,
@@ -1585,7 +1812,13 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "onyx",
+    "storm",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     0.5791,
@@ -1608,14 +1841,23 @@
    "source": {
     "frames": [],
     "support": 0
-   }
+   },
+   "title": "Onyx Storm",
+   "text": "REBECCA YaRROS ONYX STORM"
   },
   {
    "id": "obj_0053",
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "rising",
+    "shadow",
+    "the",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     -0.3738,
@@ -1638,14 +1880,19 @@
    "source": {
     "frames": [],
     "support": 0
-   }
+   },
+   "title": "The Shadow Rising",
+   "text": "Shadow RISING Robert ordan"
   },
   {
    "id": "obj_0054",
    "label": "owl",
    "category": "owl",
    "keywords": [
-    "owl"
+    "owl",
+    "bird",
+    "figurine",
+    "toy"
    ],
    "position": [
     -0.1193,
@@ -1675,7 +1922,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     1.2015,
@@ -1705,7 +1954,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     0.4305,
@@ -1735,7 +1986,11 @@
    "label": "figurine",
    "category": "figurine",
    "keywords": [
-    "figurine"
+    "figurine",
+    "figure",
+    "toy",
+    "collectible",
+    "character"
    ],
    "position": [
     -0.0273,
@@ -1765,7 +2020,14 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "gathering",
+    "storm",
+    "the",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     -0.1991,
@@ -1788,14 +2050,20 @@
    "source": {
     "frames": [],
     "support": 0
-   }
+   },
+   "title": "The Gathering Storm",
+   "text": "THE GATHERING STORM"
   },
   {
    "id": "obj_0059",
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     0.0946,
@@ -1825,7 +2093,11 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     0.0984,
@@ -1855,7 +2127,14 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "emberdark",
+    "isles",
+    "the",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     0.5578,
@@ -1878,14 +2157,18 @@
    "source": {
     "frames": [],
     "support": 0
-   }
+   },
+   "title": "Isles of the Emberdark",
+   "text": "ISLES EMBERDARK Of THE BRANDON SaNderson"
   },
   {
    "id": "obj_0062",
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     -0.1515,
@@ -1915,7 +2198,11 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     0.2727,
@@ -1945,7 +2232,11 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     0.1662,
@@ -1975,7 +2266,11 @@
    "label": "figurine",
    "category": "figurine",
    "keywords": [
-    "figurine"
+    "figurine",
+    "figure",
+    "toy",
+    "collectible",
+    "character"
    ],
    "position": [
     0.2086,
@@ -2005,7 +2300,12 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "grey",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     -0.7632,
@@ -2028,14 +2328,18 @@
    "source": {
     "frames": [],
     "support": 0
-   }
+   },
+   "title": "Grey",
+   "text": "GREY EL JAMES"
   },
   {
    "id": "obj_0067",
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     0.2952,
@@ -2065,7 +2369,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     0.8811,
@@ -2095,7 +2401,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     0.1384,
@@ -2125,7 +2433,11 @@
    "label": "figurine",
    "category": "figurine",
    "keywords": [
-    "figurine"
+    "figurine",
+    "figure",
+    "toy",
+    "collectible",
+    "character"
    ],
    "position": [
     0.2949,
@@ -2155,7 +2467,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     -0.3743,
@@ -2185,7 +2499,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     0.1117,
@@ -2215,7 +2531,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     0.7425,
@@ -2245,7 +2563,11 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     -0.2841,
@@ -2275,7 +2597,9 @@
    "label": "box",
    "category": "box",
    "keywords": [
-    "box"
+    "box",
+    "container",
+    "case"
    ],
    "position": [
     0.2639,
@@ -2305,7 +2629,11 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     -0.2408,
@@ -2335,7 +2663,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     -0.5822,
@@ -2365,7 +2695,11 @@
    "label": "figurine",
    "category": "figurine",
    "keywords": [
-    "figurine"
+    "figurine",
+    "figure",
+    "toy",
+    "collectible",
+    "character"
    ],
    "position": [
     -0.1423,
@@ -2395,7 +2729,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     -0.1693,
@@ -2425,7 +2761,9 @@
    "label": "box",
    "category": "box",
    "keywords": [
-    "box"
+    "box",
+    "container",
+    "case"
    ],
    "position": [
     -0.1161,
@@ -2455,7 +2793,9 @@
    "label": "box",
    "category": "box",
    "keywords": [
-    "box"
+    "box",
+    "container",
+    "case"
    ],
    "position": [
     0.1006,
@@ -2485,7 +2825,11 @@
    "label": "picture frame",
    "category": "picture frame",
    "keywords": [
-    "picture frame"
+    "picture frame",
+    "photo",
+    "picture",
+    "frame",
+    "portrait"
    ],
    "position": [
     -0.6879,
@@ -2515,7 +2859,10 @@
    "label": "statue",
    "category": "statue",
    "keywords": [
-    "statue"
+    "statue",
+    "figure",
+    "sculpture",
+    "bust"
    ],
    "position": [
     0.1046,
@@ -2545,7 +2892,11 @@
    "label": "figurine",
    "category": "figurine",
    "keywords": [
-    "figurine"
+    "figurine",
+    "figure",
+    "toy",
+    "collectible",
+    "character"
    ],
    "position": [
     0.4022,
@@ -2575,7 +2926,9 @@
    "label": "box",
    "category": "box",
    "keywords": [
-    "box"
+    "box",
+    "container",
+    "case"
    ],
    "position": [
     0.8216,
@@ -2605,7 +2958,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     0.0732,
@@ -2635,7 +2990,11 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     0.4589,
@@ -2665,7 +3024,9 @@
    "label": "box",
    "category": "box",
    "keywords": [
-    "box"
+    "box",
+    "container",
+    "case"
    ],
    "position": [
     -0.0255,
@@ -2695,7 +3056,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     0.2295,
@@ -2725,7 +3088,11 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     0.7915,
@@ -2756,7 +3123,12 @@
    "category": "lego model",
    "keywords": [
     "lego model",
-    "lego"
+    "lego",
+    "model",
+    "build",
+    "toy",
+    "brick",
+    "set"
    ],
    "position": [
     0.2531,
@@ -2786,7 +3158,11 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     0.1818,
@@ -2816,7 +3192,11 @@
    "label": "picture frame",
    "category": "picture frame",
    "keywords": [
-    "picture frame"
+    "picture frame",
+    "photo",
+    "picture",
+    "frame",
+    "portrait"
    ],
    "position": [
     0.8902,
@@ -2846,7 +3226,17 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "and",
+    "book",
+    "child",
+    "cursed",
+    "harry",
+    "potter",
+    "the",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     -0.4055,
@@ -2869,14 +3259,20 @@
    "source": {
     "frames": [],
     "support": 0
-   }
+   },
+   "title": "Harry Potter and the Cursed Child",
+   "text": "HARRY POHER AND Th CURSED CHILD"
   },
   {
    "id": "obj_0097",
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     0.7476,
@@ -2907,7 +3303,12 @@
    "category": "lego model",
    "keywords": [
     "lego model",
-    "lego"
+    "lego",
+    "model",
+    "build",
+    "toy",
+    "brick",
+    "set"
    ],
    "position": [
     0.4302,
@@ -2937,7 +3338,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     -0.6682,
@@ -2967,7 +3370,11 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     -0.1236,
@@ -2997,7 +3404,11 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     0.5882,
@@ -3027,7 +3438,11 @@
    "label": "figurine",
    "category": "figurine",
    "keywords": [
-    "figurine"
+    "figurine",
+    "figure",
+    "toy",
+    "collectible",
+    "character"
    ],
    "position": [
     -0.2012,
@@ -3057,7 +3472,11 @@
    "label": "figurine",
    "category": "figurine",
    "keywords": [
-    "figurine"
+    "figurine",
+    "figure",
+    "toy",
+    "collectible",
+    "character"
    ],
    "position": [
     0.2697,
@@ -3087,7 +3506,10 @@
    "label": "owl",
    "category": "owl",
    "keywords": [
-    "owl"
+    "owl",
+    "bird",
+    "figurine",
+    "toy"
    ],
    "position": [
     0.4496,
@@ -3117,7 +3539,9 @@
    "label": "box",
    "category": "box",
    "keywords": [
-    "box"
+    "box",
+    "container",
+    "case"
    ],
    "position": [
     -0.6913,
@@ -3147,7 +3571,11 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     0.578,
@@ -3177,7 +3605,9 @@
    "label": "box",
    "category": "box",
    "keywords": [
-    "box"
+    "box",
+    "container",
+    "case"
    ],
    "position": [
     0.6194,
@@ -3207,7 +3637,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     -0.4868,
@@ -3237,7 +3669,10 @@
    "label": "statue",
    "category": "statue",
    "keywords": [
-    "statue"
+    "statue",
+    "figure",
+    "sculpture",
+    "bust"
    ],
    "position": [
     1.127,
@@ -3267,7 +3702,11 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     -0.549,
@@ -3298,7 +3737,12 @@
    "category": "lego model",
    "keywords": [
     "lego model",
-    "lego"
+    "lego",
+    "model",
+    "build",
+    "toy",
+    "brick",
+    "set"
    ],
    "position": [
     0.2545,
@@ -3329,7 +3773,12 @@
    "category": "lego model",
    "keywords": [
     "lego model",
-    "lego"
+    "lego",
+    "model",
+    "build",
+    "toy",
+    "brick",
+    "set"
    ],
    "position": [
     -0.4104,
@@ -3359,7 +3808,11 @@
    "label": "picture frame",
    "category": "picture frame",
    "keywords": [
-    "picture frame"
+    "picture frame",
+    "photo",
+    "picture",
+    "frame",
+    "portrait"
    ],
    "position": [
     1.4808,
@@ -3389,7 +3842,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     -0.6505,
@@ -3419,7 +3874,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     -0.7163,
@@ -3449,7 +3906,11 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     0.6345,
@@ -3479,7 +3940,9 @@
    "label": "box",
    "category": "box",
    "keywords": [
-    "box"
+    "box",
+    "container",
+    "case"
    ],
    "position": [
     0.5549,
@@ -3509,7 +3972,11 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     1.003,
@@ -3539,7 +4006,11 @@
    "label": "figurine",
    "category": "figurine",
    "keywords": [
-    "figurine"
+    "figurine",
+    "figure",
+    "toy",
+    "collectible",
+    "character"
    ],
    "position": [
     1.1681,
@@ -3569,7 +4040,9 @@
    "label": "box",
    "category": "box",
    "keywords": [
-    "box"
+    "box",
+    "container",
+    "case"
    ],
    "position": [
     -0.3965,
@@ -3599,7 +4072,11 @@
    "label": "figurine",
    "category": "figurine",
    "keywords": [
-    "figurine"
+    "figurine",
+    "figure",
+    "toy",
+    "collectible",
+    "character"
    ],
    "position": [
     -0.2243,
@@ -3629,7 +4106,11 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     0.2833,
@@ -3659,7 +4140,11 @@
    "label": "figurine",
    "category": "figurine",
    "keywords": [
-    "figurine"
+    "figurine",
+    "figure",
+    "toy",
+    "collectible",
+    "character"
    ],
    "position": [
     -0.1613,
@@ -3689,7 +4174,11 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     0.4491,
@@ -3719,7 +4208,11 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     1.0149,
@@ -3749,7 +4242,11 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     -0.7669,
@@ -3779,7 +4276,9 @@
    "label": "shelf",
    "category": "shelf",
    "keywords": [
-    "shelf"
+    "shelf",
+    "ledge",
+    "board"
    ],
    "position": [
     -0.9617,
@@ -3809,7 +4308,10 @@
    "label": "statue",
    "category": "statue",
    "keywords": [
-    "statue"
+    "statue",
+    "figure",
+    "sculpture",
+    "bust"
    ],
    "position": [
     0.2094,
@@ -3839,7 +4341,11 @@
    "label": "book",
    "category": "book",
    "keywords": [
-    "book"
+    "book",
+    "novel",
+    "hardcover",
+    "read",
+    "reading"
    ],
    "position": [
     0.9151,
@@ -3870,7 +4376,12 @@
    "category": "lego model",
    "keywords": [
     "lego model",
-    "lego"
+    "lego",
+    "model",
+    "build",
+    "toy",
+    "brick",
+    "set"
    ],
    "position": [
     1.0596,
